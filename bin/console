@@ -6,6 +6,42 @@ require "sifter"
 # You can add fixtures and/or initialization code here to make experimenting
 # with your gem easier. You can also use a different console, if you like.
 
+require 'ostruct'
+
+class Query < Sifter::Query
+  defaults barbak: 'barbak'
+
+  base_scope { OpenStruct.new }
+
+  query_by :foo do |foo|
+    scope.tap{ scope.foo = foo }
+  end
+
+  query_by bar: 'bar' do
+    scope.tap{ scope.bar = 'bar' }
+  end
+
+  sifter_by baz: 'baz' do |baz|
+    defaults bakbar: 'bakbar'
+
+    base_scope { |scope| scope.tap{ scope.baz = 'baz' } }
+
+    query_by :bak do |bak|
+      scope.tap{ scope.bak = bak }
+    end
+
+    query_by :barbak do |barbak|
+      scope.tap{ scope.barbak = barbak }
+    end
+
+    sifter_by :nested_baz do |nested_baz|
+      query_by :bakbar do |bakbar|
+        scope.tap{ scope.bakbar = [baz, nested_baz, bakbar].join('-') }
+      end
+    end
+  end
+end
+
 require "pry"
 Pry.start
 
