@@ -1,0 +1,2 @@
+class Sifter::Query
+end
