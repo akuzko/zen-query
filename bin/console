@@ -42,6 +42,8 @@ class Query < Sifter::Query
   end
 end
 
+q = Query.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb')
+
 require "pry"
 Pry.start
 
