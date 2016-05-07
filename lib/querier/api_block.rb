@@ -1,4 +1,4 @@
-class Querier::ApiBlock < Struct.new(:presence_fields, :value_fields, :block)
+class Querier::ApiBlock < Struct.new(:presence_fields, :value_fields, :block, :index)
   def fits?(params)
     values_for(params).all?{ |value| present?(value) }
   end

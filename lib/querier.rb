@@ -19,9 +19,11 @@ class Querier
     subclass.defaults defaults
   end
 
-  def initialize(params, scope: nil)
-    @params = Hashie::Mash.new(klass.defaults.merge(params))
+  def initialize(params = {}, scope: nil, **attrs)
+    @params = Hashie::Mash.new(klass.defaults).merge(params || {})
     @scope  = scope unless scope.nil?
+    @attrs  = attrs
+    define_attr_readers
   end
 
   def scope
@@ -57,6 +59,7 @@ class Querier
 
   attr_writer :scope, :params
   attr_accessor :block
+  attr_reader :attrs
 
   def siftered_instance
     block = klass.sifter_blocks.find{ |block| block.fits?(params) }
@@ -65,21 +68,24 @@ class Querier
   end
 
   def resolved_scope!
-    klass.query_blocks.reduce(scope) do |scope, block|
+    klass.query_blocks.sort{ |a, b| a.index <=> b.index }.reduce(scope) do |scope, block|
       clone_with_scope(scope, block).apply_block!.scope
     end
   end
 
   def apply_block!
     if block && block.fits?(params)
-      @scope = instance_exec(*block.values_for(params), &block.block)
+      scope  = instance_exec(*block.values_for(params), &block.block)
+      @scope = scope unless scope.nil?
     end
     self
   end
 
-  def siftered!(block, klass)
-    singleton_class.query_blocks.replace klass.query_blocks.dup
-    singleton_class.base_scope(&klass.base_scope)
+  def siftered!(block, querier)
+    @attrs = querier.attrs
+    define_attr_readers
+    singleton_class.query_blocks.replace querier.klass.query_blocks.dup
+    singleton_class.base_scope(&querier.klass.base_scope)
     singleton_class.instance_exec(*block.values_for(params), &block.block)
     params.replace(singleton_class.defaults.merge(params))
     @siftered = true
@@ -88,21 +94,21 @@ class Querier
   private
 
   def clone_with_scope(scope, block)
-    clone.tap do |query|
-      query.scope = scope
-      query.block = block
+    clone.tap do |querier|
+      querier.scope = scope
+      querier.block = block
     end
   end
 
   def clone_with_params(other_params)
-    clone.tap do |query|
-      query.params = params.merge(other_params)
+    clone.tap do |querier|
+      querier.params = params.merge(other_params)
     end
   end
 
   def clone_with_sifter(block)
-    dup.tap do |query|
-      query.siftered!(block, klass)
+    dup.tap do |querier|
+      querier.siftered!(block, self)
     end
   end
 
@@ -112,5 +118,11 @@ class Querier
 
   def siftered_instance_for(block)
     clone_with_sifter(block).siftered_instance
+  end
+
+  def define_attr_readers
+    @attrs.each do |name, value|
+      define_singleton_method(name){ value }
+    end
   end
 end

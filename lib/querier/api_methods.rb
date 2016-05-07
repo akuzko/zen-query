@@ -17,8 +17,8 @@ module Querier::ApiMethods
     sifter_blocks.push Querier::ApiBlock.new(presence_fields, value_fields, block)
   end
 
-  def query_by(*presence_fields, **value_fields, &block)
-    query_blocks.push Querier::ApiBlock.new(presence_fields, value_fields, block)
+  def query_by(*presence_fields, index: 0, **value_fields, &block)
+    query_blocks.push Querier::ApiBlock.new(presence_fields, value_fields, block, index)
   end
 
   def sifter_blocks
