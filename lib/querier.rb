@@ -1,11 +1,12 @@
-require 'hashie/mash'
+require "querier/version"
+require "hashie/mash"
 
-class Sifter::Query
-  autoload :ApiMethods, "sifter/query/api_methods"
-  autoload :ApiBlock, "sifter/query/api_block"
+class Querier
+  autoload :ApiMethods, "querier/api_methods"
+  autoload :ApiBlock, "querier/api_block"
 
   extend Forwardable
-  extend Sifter::Query::ApiMethods
+  extend ApiMethods
 
   UndefinedScopeError = Class.new(StandardError)
 
@@ -19,7 +20,7 @@ class Sifter::Query
   end
 
   def initialize(params, scope: nil)
-    @params = Hashie::Mash.new(params.reverse_merge(klass.defaults))
+    @params = Hashie::Mash.new(klass.defaults.merge(params))
     @scope  = scope unless scope.nil?
   end
 
@@ -29,7 +30,7 @@ class Sifter::Query
 
   def base_scope
     scope = klass.ancestors
-      .select{ |klass| klass < Sifter::Query }
+      .select{ |klass| klass < Querier }
       .reverse
       .map(&:base_scope)
       .compact
@@ -71,7 +72,7 @@ class Sifter::Query
 
   def apply_block!
     if block && block.fits?(params)
-      self.scope = instance_exec(*block.values_for(params), &block.block)
+      @scope = instance_exec(*block.values_for(params), &block.block)
     end
     self
   end
@@ -80,7 +81,7 @@ class Sifter::Query
     singleton_class.query_blocks.replace klass.query_blocks.dup
     singleton_class.base_scope(&klass.base_scope)
     singleton_class.instance_exec(*block.values_for(params), &block.block)
-    self.params = params.reverse_merge(singleton_class.defaults) if singleton_class.defaults
+    params.replace(singleton_class.defaults.merge(params))
     @siftered = true
   end
 

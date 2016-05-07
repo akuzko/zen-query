@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe Sifter do
+describe Querier do
   it 'has a version number' do
-    expect(Sifter::VERSION).not_to be nil
+    expect(Querier::VERSION).not_to be nil
   end
 end
