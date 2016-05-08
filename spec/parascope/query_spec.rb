@@ -111,5 +111,12 @@ RSpec.describe Parascope::Query do
 
       it { is_expected.to eq(foo: 'bar-value-foo') }
     end
+
+    describe 'brackets delegation' do
+      let(:params) { {field: 'value'} }
+      let(:query)  { SpecQuery.new(params) }
+
+      specify { expect(query[:field]).to eq 'value' }
+    end
   end
 end
