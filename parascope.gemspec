@@ -1,19 +1,19 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'querier/version'
+require 'parascope/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "querier"
-  spec.version       = Querier::VERSION
+  spec.name          = "parascope"
+  spec.version       = Parascope::VERSION
   spec.authors       = ["Artem Kuzko"]
   spec.email         = ["a.kuzko@gmail.com"]
 
   spec.summary       = %q{Builds a params-siftered scope}
-  spec.description   = %q{Querier class provides a way to dynamically apply
-    scopes or ActiveRecord query methods based on passed params with a
+  spec.description   = %q{Parascope::Query class provides a way to dynamically
+    apply scopes or ActiveRecord query methods based on passed params with a
     declarative and convenient API}
-  spec.homepage      = "https://github.com/akuzko/querier"
+  spec.homepage      = "https://github.com/akuzko/parascope"
   spec.license       = "MIT"
 
   spec.required_ruby_version = '>= 2.0.0'

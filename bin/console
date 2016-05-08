@@ -1,14 +1,14 @@
 #!/usr/bin/env ruby
 
 require "bundler/setup"
-require "querier"
+require "parascope"
 
 # You can add fixtures and/or initialization code here to make experimenting
 # with your gem easier. You can also use a different console, if you like.
 
 require 'ostruct'
 
-class Q < Querier
+class Query < Parascope::Query
   defaults barbak: 'barbak'
 
   base_scope { OpenStruct.new }
@@ -42,7 +42,7 @@ class Q < Querier
   end
 end
 
-q = Q.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb')
+q = Query.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb')
 
 require "pry"
 Pry.start
