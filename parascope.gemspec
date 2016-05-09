@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Artem Kuzko"]
   spec.email         = ["a.kuzko@gmail.com"]
 
-  spec.summary       = %q{Builds a params-siftered scope}
+  spec.summary       = %q{Builds a params-sifted scope}
   spec.description   = %q{Parascope::Query class provides a way to dynamically
     apply scopes or ActiveRecord query methods based on passed params with a
     declarative and convenient API}

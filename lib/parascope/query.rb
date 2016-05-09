@@ -16,7 +16,7 @@ module Parascope
 
     def self.inherited(subclass)
       subclass.query_blocks.replace query_blocks.dup
-      subclass.sifter_blocks.replace sifter_blocks.dup
+      subclass.sift_blocks.replace sift_blocks.dup
       subclass.guard_blocks.replace guard_blocks.dup
       subclass.base_scope(&base_scope)
       subclass.defaults defaults
@@ -49,13 +49,13 @@ module Parascope
     end
 
     def resolved_scope(params = nil)
-      return siftered_instance.resolved_scope! if params.nil?
+      return sifted_instance.resolved_scope! if params.nil?
 
       clone_with_params(params).resolved_scope
     end
 
     def klass
-      siftered? ? singleton_class : self.class
+      sifted? ? singleton_class : self.class
     end
 
     protected
@@ -64,10 +64,10 @@ module Parascope
     attr_accessor :block
     attr_reader :attrs
 
-    def siftered_instance
-      block = klass.sifter_blocks.find{ |block| block.fits?(params) }
+    def sifted_instance
+      block = klass.sift_blocks.find{ |block| block.fits?(params) }
 
-      block ? siftered_instance_for(block) : self
+      block ? sifted_instance_for(block) : self
     end
 
     def resolved_scope!
@@ -85,7 +85,7 @@ module Parascope
       self
     end
 
-    def siftered!(block, query)
+    def sifted!(block, query)
       @attrs = query.attrs
       define_attr_readers
       singleton_class.query_blocks.replace query.klass.query_blocks.dup
@@ -93,7 +93,7 @@ module Parascope
       singleton_class.base_scope(&query.klass.base_scope)
       singleton_class.instance_exec(*block.values_for(params), &block.block)
       params.replace(singleton_class.defaults.merge(params))
-      @siftered = true
+      @sifted = true
     end
 
     private
@@ -123,16 +123,16 @@ module Parascope
 
     def clone_with_sifter(block)
       dup.tap do |query|
-        query.siftered!(block, self)
+        query.sifted!(block, self)
       end
     end
 
-    def siftered?
-      !!@siftered
+    def sifted?
+      !!@sifted
     end
 
-    def siftered_instance_for(block)
-      clone_with_sifter(block).siftered_instance
+    def sifted_instance_for(block)
+      clone_with_sifter(block).sifted_instance
     end
 
     def define_attr_readers

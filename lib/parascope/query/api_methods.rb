@@ -15,7 +15,7 @@ module Parascope
     end
 
     def sift_by(*presence_fields, **value_fields, &block)
-      sifter_blocks.push Query::ApiBlock.new(presence_fields, value_fields, block)
+      sift_blocks.push Query::ApiBlock.new(presence_fields, value_fields, block)
     end
 
     def query_by(*presence_fields, index: 0, **value_fields, &block)
@@ -26,8 +26,8 @@ module Parascope
       guard_blocks.push block
     end
 
-    def sifter_blocks
-      @sifter_blocks ||= []
+    def sift_blocks
+      @sift_blocks ||= []
     end
 
     def query_blocks

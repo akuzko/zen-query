@@ -40,6 +40,8 @@ in the best way.
 `parascope` provides `Parascope::Query` class, descendants of which should declare
 scope manipulations using `query_by`, `sift_by` and other class methods bellow.
 
+#### Class Methods
+
 - `query_by(*presence_fields, **value_fields, &block)` declares a scope-generation query
   block that will be executed if, and only if all values of query params at the keys of
   `presence_fields` are present in activesupport's definition of presence and all value
@@ -68,7 +70,7 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
   bellow). All such blocks are executed before query object resolves scope via
   `resolve_scope` method.
 
-### Instance methods
+#### Instance Methods
 
 - `initialize(params, scope: nil, **attributes)` initializes a query with `params`,
   an optional scope (that if passed, is used instead of `base_scope`). All additionally
