@@ -15,7 +15,7 @@ RSpec.describe Parascope::Query do
       scope.tap{ scope.value_field = 'value' }
     end
 
-    sift_by sifting_filed: 'sifted' do |sift_value|
+    sift_by sifting_field: 'sifted' do |sift_value|
       defaults nested_default: 'nested_default'
 
       base_scope { |scope| scope.tap{ scope.nested_base_value = params.nested_default } }
@@ -65,18 +65,18 @@ RSpec.describe Parascope::Query do
     end
 
     context 'when sifting criteria passed' do
-      let(:params) { {sifting_filed: 'sifted'} }
+      let(:params) { {sifting_field: 'sifted'} }
 
       it { is_expected.to match(nested_base_value: 'nested_default', value_from_top_defaults: 'default') }
 
       context 'with presence field' do
-        let(:params) { {sifting_filed: 'sifted', nested_presence_field: 'nested value'} }
+        let(:params) { {sifting_field: 'sifted', nested_presence_field: 'nested value'} }
 
         it { is_expected.to include(nested_presence_field: 'nested value') }
       end
 
       context 'and deep sifting criteria and query field passed' do
-        let(:params) { {sifting_filed: 'sifted', nested_sifting: 'nested_sifted', deep_presence_field: 'deep_field'} }
+        let(:params) { {sifting_field: 'sifted', nested_sifting: 'nested_sifted', deep_presence_field: 'deep_field'} }
 
         it { is_expected.to match(
           nested_base_value: 'nested_default',
