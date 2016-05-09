@@ -22,12 +22,20 @@ module Parascope
       query_blocks.push Query::ApiBlock.new(presence_fields, value_fields, block, index)
     end
 
+    def guard(&block)
+      guard_blocks.push block
+    end
+
     def sifter_blocks
       @sifter_blocks ||= []
     end
 
     def query_blocks
       @query_blocks ||= []
+    end
+
+    def guard_blocks
+      @guard_blocks ||= []
     end
   end
 end

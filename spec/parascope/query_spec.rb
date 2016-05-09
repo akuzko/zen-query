@@ -119,4 +119,53 @@ RSpec.describe Parascope::Query do
       specify { expect(query[:field]).to eq 'value' }
     end
   end
+
+  describe 'guard methods' do
+    let(:klass) do
+      Class.new(Parascope::Query) do
+        guard { scope.foo == 'foo' }
+
+        query_by(:bar) do |bar|
+          guard { bar.upcase == 'BAR' }
+        end
+      end
+    end
+    let(:scope)  { OpenStruct.new(foo: 'foo') }
+    let(:params) { {} }
+    let(:query)  { klass.new(params, scope: scope) }
+
+    describe 'class method' do
+      context 'when expectation failed' do
+        let(:scope) { OpenStruct.new }
+
+        it 'raises error' do
+          expect{ query.resolved_scope }.to raise_error(Parascope::Query::UnpermittedError)
+        end
+      end
+
+      context 'when expectation is met' do
+        it 'does not raise error' do
+          expect{ query.resolved_scope }.not_to raise_error
+        end
+      end
+    end
+
+    describe 'instance method' do
+      context 'when expectation failed' do
+        let(:params) { {bar: 'bak'} }
+
+        it 'raises error' do
+          expect{ query.resolved_scope }.to raise_error(Parascope::Query::UnpermittedError)
+        end
+      end
+
+      context 'when expectation is met' do
+        let(:params) { {bar: 'bar'} }
+
+        it 'does not raise error' do
+          expect{ query.resolved_scope }.not_to raise_error
+        end
+      end
+    end
+  end
 end

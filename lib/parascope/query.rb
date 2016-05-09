@@ -9,12 +9,15 @@ module Parascope
     extend ApiMethods
 
     UndefinedScopeError = Class.new(StandardError)
+    UnpermittedError = Class.new(ArgumentError)
 
     attr_reader :params
     def_delegator :params, :[]
 
     def self.inherited(subclass)
       subclass.query_blocks.replace query_blocks.dup
+      subclass.sifter_blocks.replace sifter_blocks.dup
+      subclass.guard_blocks.replace guard_blocks.dup
       subclass.base_scope(&base_scope)
       subclass.defaults defaults
     end
@@ -39,7 +42,7 @@ module Parascope
         .reduce(nil){ |scope, block| instance_exec(scope, &block) }
 
       if scope.nil?
-        fail UndefinedScopeError, "Failed to build scope. Have you missed base_scope definition?"
+        fail UndefinedScopeError, "failed to build scope. Have you missed base_scope definition?"
       end
 
       scope
@@ -68,6 +71,7 @@ module Parascope
     end
 
     def resolved_scope!
+      guard_all
       klass.query_blocks.sort{ |a, b| a.index <=> b.index }.reduce(scope) do |scope, block|
         clone_with_scope(scope, block).apply_block!.scope
       end
@@ -85,6 +89,7 @@ module Parascope
       @attrs = query.attrs
       define_attr_readers
       singleton_class.query_blocks.replace query.klass.query_blocks.dup
+      singleton_class.guard_blocks.replace query.klass.guard_blocks.dup
       singleton_class.base_scope(&query.klass.base_scope)
       singleton_class.instance_exec(*block.values_for(params), &block.block)
       params.replace(singleton_class.defaults.merge(params))
@@ -92,6 +97,16 @@ module Parascope
     end
 
     private
+
+    def guard_all
+      klass.guard_blocks.each{ |block| guard(&block) }
+    end
+
+    def guard(&block)
+      unless instance_exec(&block)
+        fail UnpermittedError, "processing is not allowed by guard block\non #{block.source_location.join(':')}"
+      end
+    end
 
     def clone_with_scope(scope, block)
       clone.tap do |query|

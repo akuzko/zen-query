@@ -14,6 +14,8 @@ class Query < Parascope::Query
   base_scope { OpenStruct.new }
 
   query_by :foo do |foo|
+    guard { foo == 'foo' }
+
     scope.tap{ scope.foo = foo }
   end
 
@@ -23,6 +25,8 @@ class Query < Parascope::Query
 
   sift_by baz: 'baz' do |baz|
     defaults bakbar: 'bakbar'
+
+    guard { upcase(baz) == 'BAZ' }
 
     base_scope { |scope| scope.tap{ scope.baz = 'baz' } }
 
@@ -39,6 +43,10 @@ class Query < Parascope::Query
         scope.tap{ scope.bakbar = [baz, nested_baz, bakbar].join('-') }
       end
     end
+  end
+
+  def upcase(str)
+    str.upcase
   end
 end
 
