@@ -1,5 +1,7 @@
 # Parascope
 
+[![Build Status](https://secure.travis-ci.org/akuzko/parascope.png)](http://travis-ci.org/akuzko/parascope)
+
 Because `periscope` is already taken.
 
 --
