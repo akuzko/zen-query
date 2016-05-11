@@ -1,7 +1,15 @@
 module Parascope
-  class Query::ApiBlock < Struct.new(:presence_fields, :value_fields, :block, :index)
+  class Query::ApiBlock
+    attr_reader :presence_fields, :value_fields, :block, :index
+
+    def initialize(presence_fields:, value_fields:, block:, index: 0)
+      @presence_fields, @value_fields, @block, @index =
+        presence_fields, value_fields, block, index
+    end
+
     def fits?(params)
-      values_for(params).all?{ |value| present?(value) }
+      (presence_fields.size == 0 && value_fields.size == 0) ||
+        values_for(params).all?{ |value| present?(value) }
     end
 
     def values_for(params)

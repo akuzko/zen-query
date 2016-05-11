@@ -34,9 +34,13 @@ RSpec.describe Parascope::Query do
         end
       end
     end
+
+    sift_by :other_sift do
+      query { scope.tap{ scope.other_sift = 'sifted' } }
+    end
   end
 
-  let(:query)  { SpecQuery.new(params) }
+  let(:query) { SpecQuery.new(params) }
   subject { query.resolved_scope.to_h }
 
   describe 'querying' do
@@ -69,7 +73,7 @@ RSpec.describe Parascope::Query do
 
       it { is_expected.to match(nested_base_value: 'nested_default', value_from_top_defaults: 'default') }
 
-      context 'with presence field' do
+      context 'with nested presence field' do
         let(:params) { {sifting_field: 'sifted', nested_presence_field: 'nested value'} }
 
         it { is_expected.to include(nested_presence_field: 'nested value') }
@@ -82,6 +86,16 @@ RSpec.describe Parascope::Query do
           nested_base_value: 'nested_default',
           value_from_top_defaults: 'default',
           deep_field: 'sifted-nested_sifted-deep_field'
+        ) }
+      end
+
+      context 'and other sifting criteria passed' do
+        let(:params) { {sifting_field: 'sifted', other_sift: true} }
+
+        it { is_expected.to match(
+          nested_base_value: 'nested_default',
+          value_from_top_defaults: 'default',
+          other_sift: 'sifted'
         ) }
       end
     end
@@ -139,7 +153,7 @@ RSpec.describe Parascope::Query do
         let(:scope) { OpenStruct.new }
 
         it 'raises error' do
-          expect{ query.resolved_scope }.to raise_error(Parascope::Query::UnpermittedError)
+          expect{ query.resolved_scope }.to raise_error(Parascope::Query::GuardViolationError)
         end
       end
 
@@ -155,7 +169,7 @@ RSpec.describe Parascope::Query do
         let(:params) { {bar: 'bak'} }
 
         it 'raises error' do
-          expect{ query.resolved_scope }.to raise_error(Parascope::Query::UnpermittedError)
+          expect{ query.resolved_scope }.to raise_error(Parascope::Query::GuardViolationError)
         end
       end
 

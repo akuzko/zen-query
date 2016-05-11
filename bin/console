@@ -45,12 +45,16 @@ class Query < Parascope::Query
     end
   end
 
+  sift_by :other_baz do |other|
+    query { scope.tap{ scope.other_baz = other } }
+  end
+
   def upcase(str)
     str.upcase
   end
 end
 
-q = Query.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb')
+q = Query.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb', other_baz: 'ob')
 
 require "pry"
 Pry.start
