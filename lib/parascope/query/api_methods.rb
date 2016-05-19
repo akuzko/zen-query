@@ -22,12 +22,11 @@ module Parascope
       )
     end
 
-    def query_by(*presence_fields, index: 0, **value_fields, &block)
+    def query_by(*presence_fields, **value_fields, &block)
       query_blocks.push Query::ApiBlock.new(
         presence_fields: presence_fields,
         value_fields:    value_fields,
-        block:           block,
-        index:           index
+        block:           block
       )
     end
 

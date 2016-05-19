@@ -49,6 +49,13 @@ class Query < Parascope::Query
     query { scope.tap{ scope.other_baz = other } }
   end
 
+  query(if: :condition?) { scope.tap{ scope.by_instance_condition = true } }
+  query(unless: :bad_condition?) { scope.tap{ scope.not_bad_condition = true } }
+
+  def condition?
+    !!params[:condition]
+  end
+
   def upcase(str)
     str.upcase
   end

@@ -38,6 +38,18 @@ RSpec.describe Parascope::Query do
     sift_by :other_sift do
       query { scope.tap{ scope.other_sift = 'sifted' } }
     end
+
+    query(if: :if_condition?) { scope.tap{ scope.if_condition_passed = true } }
+    query(unless: :unless_condition?) { scope.tap{ scope.unless_condition_passed = true } }
+    query(if: :if_condition?, unless: :unless_condition?) { scope.tap{ scope.both_conditoins_passed = true } }
+
+    def if_condition?
+      params[:if_condition]
+    end
+
+    def unless_condition?
+      params[:unless_condition].nil?
+    end
   end
 
   let(:query) { SpecQuery.new(params) }
@@ -96,6 +108,30 @@ RSpec.describe Parascope::Query do
           nested_base_value: 'nested_default',
           value_from_top_defaults: 'default',
           other_sift: 'sifted'
+        ) }
+      end
+    end
+
+    describe 'conditional querying' do
+      context ':if option' do
+        let(:params) { {if_condition: true} }
+
+        it { is_expected.to match(if_condition_passed: true) }
+      end
+
+      context ':unless option' do
+        let(:params) { {unless_condition: true} }
+
+        it { is_expected.to match(unless_condition_passed: true) }
+      end
+
+      context 'both options' do
+        let(:params) { {if_condition: true, unless_condition: true} }
+
+        it { is_expected.to match(
+          if_condition_passed: true,
+          unless_condition_passed: true,
+          both_conditoins_passed: true
         ) }
       end
     end

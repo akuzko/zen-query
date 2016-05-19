@@ -67,7 +67,7 @@ module Parascope
     attr_reader :attrs
 
     def sifted_instance
-      blocks = klass.sift_blocks.select{ |block| block.fits?(params) }
+      blocks = klass.sift_blocks.select{ |block| block.fits?(self) }
 
       blocks.size > 0 ? sifted_instance_for(blocks) : self
     end
@@ -80,7 +80,7 @@ module Parascope
     end
 
     def apply_block!
-      if block && block.fits?(params)
+      if block && block.fits?(self)
         scope  = instance_exec(*block.values_for(params), &block.block)
         @scope = scope unless scope.nil?
       end
