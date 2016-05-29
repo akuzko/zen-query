@@ -34,9 +34,25 @@ RSpec.describe Parascope::Query do
         end
       end
     end
+
+    sifter :other_sift do
+      query { scope.tap{ scope.other_sift = 'sifted' } }
+    end
+
+    query(if: :if_condition?) { scope.tap{ scope.if_condition_passed = true } }
+    query(unless: -> { unless_condition? }) { scope.tap{ scope.unless_condition_passed = true } }
+    query(if: :if_condition?, unless: :unless_condition?) { scope.tap{ scope.both_conditoins_passed = true } }
+
+    def if_condition?
+      params[:if_condition]
+    end
+
+    def unless_condition?
+      params[:unless_condition].nil?
+    end
   end
 
-  let(:query)  { SpecQuery.new(params) }
+  let(:query) { SpecQuery.new(params) }
   subject { query.resolved_scope.to_h }
 
   describe 'querying' do
@@ -69,7 +85,7 @@ RSpec.describe Parascope::Query do
 
       it { is_expected.to match(nested_base_value: 'nested_default', value_from_top_defaults: 'default') }
 
-      context 'with presence field' do
+      context 'with nested presence field' do
         let(:params) { {sifting_field: 'sifted', nested_presence_field: 'nested value'} }
 
         it { is_expected.to include(nested_presence_field: 'nested value') }
@@ -84,6 +100,68 @@ RSpec.describe Parascope::Query do
           deep_field: 'sifted-nested_sifted-deep_field'
         ) }
       end
+
+      context 'and other sifting criteria passed' do
+        let(:params) { {sifting_field: 'sifted'} }
+
+        subject { query.resolved_scope(:other_sift).to_h }
+
+        it { is_expected.to match(
+          nested_base_value: 'nested_default',
+          value_from_top_defaults: 'default',
+          other_sift: 'sifted'
+        ) }
+      end
+    end
+
+    describe 'conditional querying' do
+      context ':if option' do
+        let(:params) { {if_condition: true} }
+
+        it { is_expected.to match(if_condition_passed: true) }
+      end
+
+      context ':unless option' do
+        let(:params) { {unless_condition: true} }
+
+        it { is_expected.to match(unless_condition_passed: true) }
+      end
+
+      context 'both options' do
+        let(:params) { {if_condition: true, unless_condition: true} }
+
+        it { is_expected.to match(
+          if_condition_passed: true,
+          unless_condition_passed: true,
+          both_conditoins_passed: true
+        ) }
+      end
+    end
+
+    describe 'cross base scopes' do
+      let(:klass) do
+        Class.new(Parascope::Query) do
+          sifter(:foo) do
+            base_scope { OpenStruct.new(foo: true) }
+
+            query { scope.tap{ scope.foo_query = true } }
+          end
+
+          sifter(:bar) do
+            base_scope { foo_scope }
+
+            query { scope.tap{ scope.bar_query = true } }
+          end
+
+          def foo_scope
+            resolved_scope(:foo)
+          end
+        end
+      end
+
+      subject{ klass.new({}).resolved_scope(:bar).to_h }
+
+      it { is_expected.to match(foo: true, foo_query: true, bar_query: true) }
     end
   end
 
@@ -139,7 +217,7 @@ RSpec.describe Parascope::Query do
         let(:scope) { OpenStruct.new }
 
         it 'raises error' do
-          expect{ query.resolved_scope }.to raise_error(Parascope::Query::UnpermittedError)
+          expect{ query.resolved_scope }.to raise_error(Parascope::Query::GuardViolationError)
         end
       end
 
@@ -155,7 +233,7 @@ RSpec.describe Parascope::Query do
         let(:params) { {bar: 'bak'} }
 
         it 'raises error' do
-          expect{ query.resolved_scope }.to raise_error(Parascope::Query::UnpermittedError)
+          expect{ query.resolved_scope }.to raise_error(Parascope::Query::GuardViolationError)
         end
       end
 

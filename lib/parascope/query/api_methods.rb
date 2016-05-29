@@ -15,12 +15,23 @@ module Parascope
     end
 
     def sift_by(*presence_fields, **value_fields, &block)
-      sift_blocks.push Query::ApiBlock.new(presence_fields, value_fields, block)
+      sift_blocks.push Query::ApiBlock.new(
+        presence_fields: presence_fields,
+        value_fields:    value_fields,
+        block:           block
+      )
     end
 
-    def query_by(*presence_fields, index: 0, **value_fields, &block)
-      query_blocks.push Query::ApiBlock.new(presence_fields, value_fields, block, index)
+    def query_by(*presence_fields, **value_fields, &block)
+      query_blocks.push Query::ApiBlock.new(
+        presence_fields: presence_fields,
+        value_fields:    value_fields,
+        block:           block
+      )
     end
+
+    alias_method :sifter, :sift_by
+    alias_method :query, :query_by
 
     def guard(&block)
       guard_blocks.push block

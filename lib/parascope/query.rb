@@ -9,7 +9,9 @@ module Parascope
     extend ApiMethods
 
     UndefinedScopeError = Class.new(StandardError)
-    UnpermittedError = Class.new(ArgumentError)
+    GuardViolationError = Class.new(ArgumentError)
+    # for backward-compatability
+    UnpermittedError = GuardViolationError
 
     attr_reader :params
     def_delegator :params, :[]
@@ -25,7 +27,8 @@ module Parascope
     def initialize(params, scope: nil, **attrs)
       @params = Hashie::Mash.new(klass.defaults).merge(params || {})
       @scope  = scope unless scope.nil?
-      @attrs  = attrs
+      @attrs  = attrs.freeze
+      @base_params = @params
       define_attr_readers
     end
 
@@ -48,10 +51,11 @@ module Parascope
       scope
     end
 
-    def resolved_scope(params = nil)
-      return sifted_instance.resolved_scope! if params.nil?
+    def resolved_scope(*args)
+      arg_params = args.pop if args.last.is_a?(Hash)
+      return sifted_instance.resolved_scope! if arg_params.nil? && args.empty?
 
-      clone_with_params(params).resolved_scope
+      clone_with_params(trues(args).merge(arg_params || {})).resolved_scope
     end
 
     def klass
@@ -65,9 +69,9 @@ module Parascope
     attr_reader :attrs
 
     def sifted_instance
-      block = klass.sift_blocks.find{ |block| block.fits?(params) }
+      blocks = klass.sift_blocks.select{ |block| block.fits?(self) }
 
-      block ? sifted_instance_for(block) : self
+      blocks.size > 0 ? sifted_instance_for(blocks) : self
     end
 
     def resolved_scope!
@@ -78,22 +82,56 @@ module Parascope
     end
 
     def apply_block!
-      if block && block.fits?(params)
+      if block && block.fits?(self)
         scope  = instance_exec(*block.values_for(params), &block.block)
         @scope = scope unless scope.nil?
       end
       self
     end
 
-    def sifted!(block, query)
+    def sifted!(query, blocks)
       @attrs = query.attrs
       define_attr_readers
       singleton_class.query_blocks.replace query.klass.query_blocks.dup
       singleton_class.guard_blocks.replace query.klass.guard_blocks.dup
       singleton_class.base_scope(&query.klass.base_scope)
-      singleton_class.instance_exec(*block.values_for(params), &block.block)
+      blocks.each do |block|
+        singleton_class.instance_exec(*block.values_for(params), &block.block)
+      end
       params.replace(singleton_class.defaults.merge(params))
       @sifted = true
+    end
+
+    def sifted?
+      !!@sifted
+    end
+
+    def clone_with_scope(scope, block = nil)
+      clone.tap do |query|
+        query.scope = scope
+        query.block = block
+      end
+    end
+
+    def clone_with_params(other_params)
+      dup.tap do |query|
+        query.params = @base_params.merge(other_params)
+        query.remove_instance_variable('@sifted') if query.instance_variable_defined?('@sifted')
+        query.remove_instance_variable('@scope') if query.instance_variable_defined?('@scope')
+        query.define_attr_readers
+      end
+    end
+
+    def clone_sifted_with(blocks)
+      dup.tap do |query|
+        query.sifted!(self, blocks)
+      end
+    end
+
+    def define_attr_readers
+      @attrs.each do |name, value|
+        define_singleton_method(name){ value }
+      end
     end
 
     private
@@ -104,40 +142,17 @@ module Parascope
 
     def guard(&block)
       unless instance_exec(&block)
-        fail UnpermittedError, "processing is not allowed by guard block\non #{block.source_location.join(':')}"
+        fail GuardViolationError, "guard block violated on #{block.source_location.join(':')}"
       end
     end
 
-    def clone_with_scope(scope, block)
-      clone.tap do |query|
-        query.scope = scope
-        query.block = block
-      end
+    def sifted_instance_for(blocks)
+      clone_sifted_with(blocks).sifted_instance
     end
 
-    def clone_with_params(other_params)
-      clone.tap do |query|
-        query.params = params.merge(other_params)
-      end
-    end
-
-    def clone_with_sifter(block)
-      dup.tap do |query|
-        query.sifted!(block, self)
-      end
-    end
-
-    def sifted?
-      !!@sifted
-    end
-
-    def sifted_instance_for(block)
-      clone_with_sifter(block).sifted_instance
-    end
-
-    def define_attr_readers
-      @attrs.each do |name, value|
-        define_singleton_method(name){ value }
+    def trues(keys)
+      keys.each_with_object({}) do |key, hash|
+        hash[key] = true
       end
     end
   end
