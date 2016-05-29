@@ -137,6 +137,32 @@ RSpec.describe Parascope::Query do
         ) }
       end
     end
+
+    describe 'cross base scopes' do
+      let(:klass) do
+        Class.new(Parascope::Query) do
+          sifter(:foo) do
+            base_scope { OpenStruct.new(foo: true) }
+
+            query { scope.tap{ scope.foo_query = true } }
+          end
+
+          sifter(:bar) do
+            base_scope { foo_scope }
+
+            query { scope.tap{ scope.bar_query = true } }
+          end
+
+          def foo_scope
+            resolved_scope(:foo)
+          end
+        end
+      end
+
+      subject{ klass.new({}).resolved_scope(:bar).to_h }
+
+      it { is_expected.to match(foo: true, foo_query: true, bar_query: true) }
+    end
   end
 
   describe 'helpers' do

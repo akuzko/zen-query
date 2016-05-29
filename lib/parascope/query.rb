@@ -28,6 +28,7 @@ module Parascope
       @params = Hashie::Mash.new(klass.defaults).merge(params || {})
       @scope  = scope unless scope.nil?
       @attrs  = attrs.freeze
+      @base_params = @params
       define_attr_readers
     end
 
@@ -51,10 +52,10 @@ module Parascope
     end
 
     def resolved_scope(*args)
-      params = args.pop if args.last.is_a?(Hash)
-      return sifted_instance.resolved_scope! if params.nil? && args.empty?
+      arg_params = args.pop if args.last.is_a?(Hash)
+      return sifted_instance.resolved_scope! if arg_params.nil? && args.empty?
 
-      clone_with_params(trues(args).merge(params || {})).resolved_scope
+      clone_with_params(trues(args).merge(arg_params || {})).resolved_scope
     end
 
     def klass
@@ -113,14 +114,23 @@ module Parascope
     end
 
     def clone_with_params(other_params)
-      clone.tap do |query|
-        query.params = params.merge(other_params)
+      dup.tap do |query|
+        query.params = @base_params.merge(other_params)
+        query.remove_instance_variable('@sifted') if query.instance_variable_defined?('@sifted')
+        query.remove_instance_variable('@scope') if query.instance_variable_defined?('@scope')
+        query.define_attr_readers
       end
     end
 
     def clone_sifted_with(blocks)
       dup.tap do |query|
         query.sifted!(self, blocks)
+      end
+    end
+
+    def define_attr_readers
+      @attrs.each do |name, value|
+        define_singleton_method(name){ value }
       end
     end
 
@@ -138,12 +148,6 @@ module Parascope
 
     def sifted_instance_for(blocks)
       clone_sifted_with(blocks).sifted_instance
-    end
-
-    def define_attr_readers
-      @attrs.each do |name, value|
-        define_singleton_method(name){ value }
-      end
     end
 
     def trues(keys)
