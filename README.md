@@ -28,7 +28,7 @@ Or install it yourself as:
 
 ## Usage
 
-Despite the fact `parsacope` was intended to help building ActiveRecord relations
+Despite the fact `parascope` was intended to help building ActiveRecord relations
 via scopes or query methods, it's usage is not limited to ActiveRecord cases and
 may be used with any arbitrary classes and objects. In fact, the only gem's dependency
 is `hashie`, and for development and testing, `OpenStruct` instance is used as a
