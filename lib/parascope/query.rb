@@ -50,10 +50,11 @@ module Parascope
       scope
     end
 
-    def resolved_scope(params = nil)
-      return sifted_instance.resolved_scope! if params.nil?
+    def resolved_scope(*args)
+      params = args.pop if args.last.is_a?(Hash)
+      return sifted_instance.resolved_scope! if params.nil? && args.empty?
 
-      clone_with_params(params).resolved_scope
+      clone_with_params(trues(args).merge(params || {})).resolved_scope
     end
 
     def klass
@@ -100,19 +101,11 @@ module Parascope
       @sifted = true
     end
 
-    private
-
-    def guard_all
-      klass.guard_blocks.each{ |block| guard(&block) }
+    def sifted?
+      !!@sifted
     end
 
-    def guard(&block)
-      unless instance_exec(&block)
-        fail GuardViolationError, "guard block violated on #{block.source_location.join(':')}"
-      end
-    end
-
-    def clone_with_scope(scope, block)
+    def clone_with_scope(scope, block = nil)
       clone.tap do |query|
         query.scope = scope
         query.block = block
@@ -131,8 +124,16 @@ module Parascope
       end
     end
 
-    def sifted?
-      !!@sifted
+    private
+
+    def guard_all
+      klass.guard_blocks.each{ |block| guard(&block) }
+    end
+
+    def guard(&block)
+      unless instance_exec(&block)
+        fail GuardViolationError, "guard block violated on #{block.source_location.join(':')}"
+      end
     end
 
     def sifted_instance_for(blocks)
@@ -142,6 +143,12 @@ module Parascope
     def define_attr_readers
       @attrs.each do |name, value|
         define_singleton_method(name){ value }
+      end
+    end
+
+    def trues(keys)
+      keys.each_with_object({}) do |key, hash|
+        hash[key] = true
       end
     end
   end

@@ -30,6 +30,7 @@ module Parascope
       )
     end
 
+    alias_method :sifter, :sift_by
     alias_method :query, :query_by
 
     def guard(&block)
