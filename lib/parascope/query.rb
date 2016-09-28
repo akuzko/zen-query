@@ -5,16 +5,9 @@ module Parascope
     autoload :ApiMethods, "parascope/query/api_methods"
     autoload :ApiBlock, "parascope/query/api_block"
 
-    extend Forwardable
     extend ApiMethods
 
-    UndefinedScopeError = Class.new(StandardError)
-    GuardViolationError = Class.new(ArgumentError)
-    # for backward-compatability
-    UnpermittedError = GuardViolationError
-
     attr_reader :params
-    def_delegator :params, :[]
 
     def self.inherited(subclass)
       subclass.query_blocks.replace query_blocks.dup
@@ -22,6 +15,10 @@ module Parascope
       subclass.guard_blocks.replace guard_blocks.dup
       subclass.base_scope(&base_scope)
       subclass.defaults defaults
+    end
+
+    def self.build(**attrs)
+      new({}, **attrs)
     end
 
     def initialize(params, scope: nil, **attrs)

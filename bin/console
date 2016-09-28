@@ -3,9 +3,6 @@
 require "bundler/setup"
 require "parascope"
 
-# You can add fixtures and/or initialization code here to make experimenting
-# with your gem easier. You can also use a different console, if you like.
-
 require 'ostruct'
 
 class Query < Parascope::Query
@@ -65,6 +62,3 @@ q = Query.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb', 
 
 require "pry"
 Pry.start
-
-# require "irb"
-# IRB.start
