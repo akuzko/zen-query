@@ -2,7 +2,7 @@
 
 [![Build Status](https://secure.travis-ci.org/akuzko/parascope.png)](http://travis-ci.org/akuzko/parascope)
 
-Because `periscope` is already taken.
+Param-based scope generation.
 
 --
 
@@ -60,6 +60,30 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
 - `query(&block)` declares scope-generation block that is always executed. As `query_by`,
   accepts `:index`, `:if` and `:unless` options.
 
+*Examples:*
+
+```ruby
+# executes block only when params[:department_id] is non-empty:
+query_by(:department_id) { |id| scope.where(department_id: id) }
+
+# executes block only when params[:only_active] == 'true':
+query_by(only_active: 'true') { scope.active }
+
+# executes block only when *both* params[:first_name] and params[:last_name]
+# are present:
+query_by(:first_name, :last_name) { |first_name, last_name| /* ... */ }
+
+# if query block returns nil, scope will remain intact:
+query { scope.active if only_active? }
+
+# conditional example:
+query(if: :include_inactive?) { scope.with_inactive }
+
+def include_inactive?
+  company.settings.include_inactive?
+end
+```
+
 - `sift_by(*presence_fields, **value_fields, &block)` method is used to hoist sets of
   query definitions that should be applied if, and only if, all specified values
   match criteria in the same way as in `query_by` method. Just like `query_by` method,
@@ -69,18 +93,75 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
 - `sifter` alias for `sift_by`. Results in a more readable construct when a single
   presence field is passed. For example, `sifter(:paginated)`.
 
+*Examples:*
+
+```ruby
+sift_by(:search_value, :search_type) do |value|
+  # definitions in this block will be applied only if *both* params[:search_value]
+  # and params[:search_type] are present
+
+  search_value = "%#{value}%"
+
+  query_by(search_type: 'name') { scope.name_like(value) }
+  query_by(search_type: 'email') { scope.where("users.email LIKE ?", search_value) }
+end
+
+sifter :paginated do
+  query_by(:page, :per_page) do |page, per|
+    scope.page(page).per(per)
+  end
+end
+
+def paginated_records
+  resolved_scope(:paginated)
+end
+```
+
 - `base_scope(&block)` method is used to define a base scope as a starting point
   of scope-generating process. If this method is called from `sift_by` block,
   top-level base scope is yielded to the method block. Note that `base_scope` will
   not be called if query is initialized with a given scope.
 
+*Examples:*
+
+```ruby
+base_scope { company.users }
+
+sifter :with_department do
+  base_scope { |scope| scope.joins(:department) }
+end
+```
+
 - `defaults(hash)` method is used to declare default query params that are reverse
   merged with params passed on query initialization. When used in `sift_by` block,
   hashes are merged altogether.
 
+*Examples:*
+
+```ruby
+defaults only_active: true
+
+sifter :paginated do
+  # sifter defaults are merged with higher-level defaults:
+  defaults page: 1, per_page: 25
+end
+```
+
 - `guard(&block)` defines a guard instance method block (see instance methods
   bellow). All such blocks are executed before query object resolves scope via
   `resolve_scope` method.
+
+*Examples:*
+
+```ruby
+sift_by(:sort_col, :sort_dir) do |scol, sdir|
+  # will raise Parascope::GuardViolationError on scope resolution if
+  # params[:sort_dir] is not 'asc' or 'desc'
+  guard { sdir.downcase.in?(%w(asc desc)) }
+
+  base_scope { |scope| scope.order(scol => sdir) }
+end
+```
 
 #### Instance Methods
 
@@ -88,10 +169,19 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
   an optional scope (that if passed, is used instead of `base_scope`). All additionally
   passed options are accessible via reader methods in query blocks and elsewhere.
 
+- `build(scope: nil, **attributes)` initializes a query with empty params. Handy when
+  query depends only passed attributes and internal logic. Also useful in specs.
+
+*Examples:*
+
+```ruby
+query = UsersQuery.new(query_params, company: company)
+
+query = UsersQuery.build(scope: users_scope)
+```
+
 - `params` returns a parameters passed in initialization. Is a `Hashie::Mash` instance,
   thus, values can be accessible via reader methods.
-
-- `[](key)` delegates to query `params` for slightly easier values access.
 
 - `scope` "current" scope of query object. For an initialized query object corresponds
   to base scope. Primary usage is to call this method in `query_by` blocks and return
@@ -101,6 +191,18 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
   `GuardViolationError` is raised. You can use this method to ensure safety of param
   values interpolation to a SQL string in a `query_by` block for example.
 
+*Examples:*
+
+```ruby
+query_by(:sort_col, :sort_dir) do |scol, sdir|
+  # will raise Parascope::GuardViolationError on scope resolution if
+  # params[:sort_dir] is not 'asc' or 'desc'
+  guard { sdir.downcase.in?(%w(asc desc)) }
+
+  scope.order(scol => sdir)
+end
+```
+
 - `resolved_scope(*presence_keys, override_params = {})` returns a resulting scope
   generated by all queries and sifted queries that fit to query params applied to
   base scope. Optionally, additional params may be passed to override the ones passed on
@@ -109,7 +211,37 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
   `resolved_scope(with_projects: true)`). It's the main `Query` instance method that
   returns the sole purpose of it's instances.
 
-### Usage example with ActiveRecord Relation as a scope
+*Examples:*
+
+```ruby
+defaults only_active: true
+
+base_scope { company.users }
+
+query_by(:only_active) { scope.active }
+
+sifter :with_departments do
+  scope.joins(:departments)
+
+  query_by(:department_name) { |name| scope.where(departments: {name: name}) }
+end
+
+def users
+  @users ||= resolved_scope
+end
+
+# you can use options to overwrite defaults:
+def all_users
+  resolved_scope(only_active: false)
+end
+
+# or to apply a sifter with additional params:
+def managers
+  resolved_scope(:with_departments, department_name: 'managers')
+end
+```
+
+### Composite usage example with ActiveRecord Relation as a scope
 
 ```ruby
 class UserQuery < Parascope::Query
@@ -117,13 +249,9 @@ class UserQuery < Parascope::Query
 
   base_scope { company.users }
 
-  query_by :only_active do
-    scope.active
-  end
+  query_by(:only_active) { scope.active }
 
-  query_by :birthdate do |date|
-    scope.by_birtdate(date)
-  end
+  query_by(:birthdate) { |date| scope.by_birtdate(date) }
 
   query_by :name do |name|
     scope.where("CONCAT(first_name, ' ', last_name) LIKE ?", "%#{name}%")
@@ -167,6 +295,70 @@ query.project_users # => this is the same as:
 #   .where("CONCAT(first_name, ' ', last_name) LIKE ?", "%John%")
 #   .where(projects: {name: 'ExampleApp'})
 #   .order("CONCAT(first_name, ' ', last_name) DESC")
+```
+
+### Hints and Tips
+
+- Keep in mind that query classes are just plain Ruby classes. All `sifter`,
+`query_by` and `guard` declarations are inherited, as well as default params
+declared by `defaults` method. Thus, you can define a BaseQuery with common
+definitions as a base class for queries in your application. Or you can define
+query API blocks in some module's `included` callback to share common definitions
+via module inclusion.
+
+- Being plain Ruby classes also means you can easily extend default functionality
+for your needs. For example, if you're querying ActiveRecord relations, and your
+primary use case looks like
+
+```ruby
+query_by(:some_field_id) { |id| scope.where(some_field_id: id) }
+```
+you can do the following to make things more DRY:
+
+```ruby
+class ApplicationQuery < Parascope::Query
+  def self.query_by(*fields, &block)
+    block ||= default_query_block(fields)
+    super(*fields, &block)
+  end
+
+  def self.default_query_block(fields)
+    ->(*values){ scope.where(Hash[fields.zip(values)]) }
+  end
+  private_class_method :default_query_block
+end
+```
+
+and then you can simply call
+
+```ruby
+class UsersQuery < ApplicationQuery
+  base_scope { company.users }
+
+  query_by :first_name
+  query_by :last_name
+  query_by :city, :street_address
+end
+```
+
+Or you can go a little further and declare a class method
+
+```ruby
+class ApplicationQuery
+  def self.query_by_fields(*fields)
+    fields.each do |field|
+      query_by field
+    end
+  end
+end
+```
+
+and then
+
+```ruby
+class UserQuery < ApplicationQuery
+  query_by_fields :first_name, :last_name, :department_id
+end
 ```
 
 ## Development

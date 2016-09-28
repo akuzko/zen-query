@@ -93,7 +93,7 @@ RSpec.describe Parascope::Query do
 
       describe 'both :if and :unless options' do
         feature do
-          query(if: :if_condition?, unless: :unless_condition?) { scope.tap{ scope.both_conditoins_passed = true } }
+          query(if: :if_condition?, unless: :unless_condition?) { scope.tap{ scope.both_conditions_passed = true } }
 
           def if_condition?
             !!params.if_condition
@@ -119,7 +119,7 @@ RSpec.describe Parascope::Query do
         context 'both conditions passed' do
           params if_condition: true, unless_condition: true
 
-          it { is_expected.to match(both_conditoins_passed: true) }
+          it { is_expected.to match(both_conditions_passed: true) }
         end
       end
     end
