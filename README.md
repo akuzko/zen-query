@@ -71,7 +71,9 @@ query_by(only_active: 'true') { scope.active }
 
 # executes block only when *both* params[:first_name] and params[:last_name]
 # are present:
-query_by(:first_name, :last_name) { |first_name, last_name| /* ... */ }
+query_by(:first_name, :last_name) do |first_name, last_name|
+  scope.where(first_name: first_name, last_name: last_name)
+end
 
 # if query block returns nil, scope will remain intact:
 query { scope.active if only_active? }
@@ -163,21 +165,27 @@ sift_by(:sort_col, :sort_dir) do |scol, sdir|
 end
 ```
 
+- `build(scope: nil, **attributes)` initializes a query with empty params. Handy when
+  query depends only passed attributes and internal logic. Also useful in specs.
+
+  *Examples:*
+
+
+```ruby
+query = UsersQuery.build(scope: users_scope)
+# the same as UsersQuery.new({}, scope: users_scope)
+```
+
 #### Instance Methods
 
 - `initialize(params, scope: nil, **attributes)` initializes a query with `params`,
   an optional scope (that if passed, is used instead of `base_scope`). All additionally
   passed options are accessible via reader methods in query blocks and elsewhere.
 
-- `build(scope: nil, **attributes)` initializes a query with empty params. Handy when
-  query depends only passed attributes and internal logic. Also useful in specs.
-
 *Examples:*
 
 ```ruby
 query = UsersQuery.new(query_params, company: company)
-
-query = UsersQuery.build(scope: users_scope)
 ```
 
 - `params` returns a parameters passed in initialization. Is a `Hashie::Mash` instance,
@@ -221,7 +229,7 @@ base_scope { company.users }
 query_by(:only_active) { scope.active }
 
 sifter :with_departments do
-  scope.joins(:departments)
+  base_scope { scope.joins(:departments) }
 
   query_by(:department_name) { |name| scope.where(departments: {name: name}) }
 end
