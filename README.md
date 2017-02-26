@@ -1,8 +1,9 @@
 # Parascope
 
-[![Build Status](https://secure.travis-ci.org/akuzko/parascope.png)](http://travis-ci.org/akuzko/parascope)
-
 Param-based scope generation.
+
+[![build status](https://secure.travis-ci.org/akuzko/parascope.png)](http://travis-ci.org/akuzko/parascope)
+[![github release](https://img.shields.io/github/release/akuzko/parascope.svg)](https://github.com/akuzko/parascope/releases)
 
 --
 
