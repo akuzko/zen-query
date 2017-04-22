@@ -197,7 +197,7 @@ query = UsersQuery.new(query_params, company: company)
   it's mutated version corresponding to passed `query_by` arguments.
 
 - `guard(&block)` executes a passed `block`. If this execution returns falsy value,
-  `GuardViolationError` is raised. You can use this method to ensure safety of param
+  `Parascope::GuardViolationError` is raised. You can use this method to ensure safety of param
   values interpolation to a SQL string in a `query_by` block for example.
 
 *Examples:*
@@ -385,4 +385,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/akuzko
 
 The gem is available as open source under the terms of the
 [MIT License](http://opensource.org/licenses/MIT).
-

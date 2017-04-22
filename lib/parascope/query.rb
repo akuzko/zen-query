@@ -139,7 +139,7 @@ module Parascope
 
     def guard(&block)
       unless instance_exec(&block)
-        fail GuardViolationError, "guard block violated on #{block.source_location.join(':')}"
+        fail ::Parascope::GuardViolationError, "guard block violated on #{block.source_location.join(':')}"
       end
     end
 
