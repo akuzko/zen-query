@@ -1,5 +1,11 @@
 === master
 
-Update README, add CHANGELOG (akuzko)
+=== 1.0.1
+
+Fix base scope application on sifted instance
+
+Add [github release] badge to README
+
+Update README, add CHANGELOG
 
 === 1.0.0
