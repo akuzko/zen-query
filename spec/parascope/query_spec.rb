@@ -204,21 +204,6 @@ RSpec.describe Parascope::Query do
 
         it { is_expected.to match(foo_sift: 'from bar') }
       end
-
-      describe 'and default scope with explicit scope on initialization' do
-        let(:scope) { OpenStruct.new }
-        let(:query) { query_klass.new(params, scope: scope) }
-
-        feature do
-          sift_by :foo do
-            base_scope { |scope| scope.tap{ scope.base_applied = true } }
-          end
-        end
-
-        params foo: 'foo'
-
-        it { is_expected.to match(base_applied: true) }
-      end
     end
 
     describe 'defaults' do

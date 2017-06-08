@@ -306,6 +306,26 @@ query.project_users # => this is the same as:
 #   .order("CONCAT(first_name, ' ', last_name) DESC")
 ```
 
+### A Note on `base_scope` Blocks
+
+Keep in mind that _all_ `base_scope` blocks are
+**applied only if query object was initialized without explicit scope option**,
+i.e. if your Query class has a sifter with mandatory scope modification, and
+you initialize your query objects with explicit scope, you most likely want
+to use unoptional `query` block within sifter definition. For example,
+
+```rb
+class MyQuery < Parascope::Query
+  sifter :with_projects do
+    query { scope.joins(:projects) }
+
+    # ...
+  end
+end
+
+query = MyQuery.new(params, scope: some_scope)
+```
+
 ### Hints and Tips
 
 - Keep in mind that query classes are just plain Ruby classes. All `sifter`,

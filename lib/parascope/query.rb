@@ -96,9 +96,6 @@ module Parascope
         singleton_class.instance_exec(*block.values_for(params), &block.block)
       end
       params.replace(singleton_class.defaults.merge(params))
-      if instance_variable_defined?('@scope') && !singleton_class.base_scope.nil?
-        @scope = instance_exec(@scope, &singleton_class.base_scope)
-      end
       @sifted = true
     end
 
