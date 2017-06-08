@@ -1,5 +1,9 @@
 === master
 
+=== 1.0.2
+
+Remove base_scope application on sifted instance
+
 === 1.0.1
 
 Fix base scope application on sifted instance
