@@ -73,7 +73,9 @@ module Parascope
 
     def resolved_scope!
       guard_all
-      klass.query_blocks.sort{ |a, b| a.index <=> b.index }.reduce(scope) do |scope, block|
+      blocks_with_index, blocks_without_index = klass.query_blocks.partition { |b| b.index > 0 }
+      sorted_blocks = blocks_without_index + blocks_with_index.sort{ |a, b| a.index <=> b.index }
+      sorted_blocks.reduce(scope) do |scope, block|
         clone_with_scope(scope, block).apply_block!.scope
       end
     end
