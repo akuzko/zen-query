@@ -1,5 +1,9 @@
 === master
 
+=== 1.0.3
+
+Explicitly apply query blocks in definition order
+
 === 1.0.2
 
 Remove base_scope application on sifted instance
