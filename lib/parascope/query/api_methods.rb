@@ -48,5 +48,13 @@ module Parascope
     def guard_blocks
       @guard_blocks ||= []
     end
+
+    def sorted_query_blocks
+      query_blocks.sort do |a, b|
+        a.index == b.index \
+          ? query_blocks.index(a) <=> query_blocks.index(b)
+          : a.index <=> b.index
+      end
+    end
   end
 end

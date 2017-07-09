@@ -307,16 +307,18 @@ RSpec.describe Parascope::Query do
 
     describe 'query application order control' do
       feature do
-        base_scope { OpenStruct.new(foo: 'value') }
-        query_by(:foo) { scope.tap{ scope.foo << '-foo' } }
-        query_by(:bar, index: -1) { scope.tap{ scope.foo.replace('bar-' + scope.foo) } }
+        base_scope { OpenStruct.new(value: []) }
+
+        query { scope.tap{ scope.value << 'bar' } }
+        query(index: -1) { scope.tap{ scope.value << 'foo' } }
+        query { scope.tap{ scope.value << 'baz' } }
       end
 
-      let(:query) { query_klass.new(foo: true, bar: true) }
+      let(:query) { query_klass.build }
 
       subject { query.resolved_scope.to_h }
 
-      it { is_expected.to eq(foo: 'bar-value-foo') }
+      it { is_expected.to eq(value: ['foo', 'bar', 'baz']) }
     end
   end
 
