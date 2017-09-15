@@ -1,5 +1,7 @@
 === master
 
+Improve :index option support, add query_by! and sift_by! methods
+
 === 1.0.3
 
 Explicitly apply query blocks in definition order
