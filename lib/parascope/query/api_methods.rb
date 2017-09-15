@@ -33,6 +33,27 @@ module Parascope
     alias_method :sifter, :sift_by
     alias_method :query, :query_by
 
+    def sift_by!(*presence_fields, &block)
+      sift_blocks.push Query::ApiBlock.new(
+        presence_fields: presence_fields,
+        value_fields:    {},
+        block:           block,
+        force:           true
+      )
+    end
+
+    def query_by!(*presence_fields, &block)
+      query_blocks.push Query::ApiBlock.new(
+        presence_fields: presence_fields,
+        value_fields:    {},
+        block:           block,
+        force:           true
+      )
+    end
+
+    alias_method :sifter!, :sift_by!
+    alias_method :query!, :query_by!
+
     def guard(&block)
       guard_blocks.push block
     end

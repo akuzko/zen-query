@@ -5,7 +5,7 @@ Param-based scope generation.
 [![build status](https://secure.travis-ci.org/akuzko/parascope.png)](http://travis-ci.org/akuzko/parascope)
 [![github release](https://img.shields.io/github/release/akuzko/parascope.svg)](https://github.com/akuzko/parascope/releases)
 
---
+---
 
 This gem provides a `Parascope::Query` class with a declarative and convenient API
 to build scopes (ActiveRecord relations or arbitrary objects) dynamically, based
@@ -51,15 +51,22 @@ scope manipulations using `query_by`, `sift_by` and other class methods bellow.
   returns a non-nil value, it becomes a new scope for subsequent processing. Of course,
   there can be multiple `query_by` block definitions. Methods accepts additional options:
   - `:index` - allows to specify order of query block applications. By default all query
-    blocks have index of 0;
+    blocks have index of 0. This option also accepts special values `:first` and `:last` for
+    more convenient usage. Queries with the same value of `:index` option are applied in
+    order of declaration.
   - `:if` - specifies condition according to which query should be applied. If Symbol
     or String is passed, calls corresponding method. If Proc is passed, it is executed
     in context of query object. Note that this is optional condition, and does not
     overwrite original param-based condition for a query block that should always be met.
   - `:unless` - the same as `:if` option, but with reversed boolean check.
 
-- `query(&block)` declares scope-generation block that is always executed. As `query_by`,
-  accepts `:index`, `:if` and `:unless` options.
+- `query_by!(*fields, &block)` declares scope-generation block that is always executed
+  (unless `:if` and/or `:unless` options are used). All values in params at `fields` keys are
+  yielded to the block. As `query_by`, accepts `:index`, `:if` and `:unless` options.
+
+- `query(&block)` declares scope-generation block that is always executed (unless `:if`
+  and/or `:unless` options are used). As `query_by`, accepts `:index`, `:if` and `:unless`
+  options.
 
 *Examples:*
 
@@ -90,8 +97,12 @@ end
 - `sift_by(*presence_fields, **value_fields, &block)` method is used to hoist sets of
   query definitions that should be applied if, and only if, all specified values
   match criteria in the same way as in `query_by` method. Just like `query_by` method,
-  values of specified fields are yielded to the block. Such `sift_by` definitions
-  may be nested in any depth.
+  values of specified fields are yielded to the block. Accepts the same options as
+  it's `query_by` counterpart. Such `sift_by` definitions may be nested in any depth.
+
+- `sift_by!(*fields, &block)` declares a sifter block that is always applied (unless
+  `:if` and/or `:unless` options are used). All values in params at specified `fields`
+  are yielded to the block.
 
 - `sifter` alias for `sift_by`. Results in a more readable construct when a single
   presence field is passed. For example, `sifter(:paginated)`.

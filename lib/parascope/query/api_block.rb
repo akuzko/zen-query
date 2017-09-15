@@ -3,17 +3,18 @@ module Parascope
     OPTION_KEYS = %i[index if unless].freeze
     private_constant :OPTION_KEYS
 
-    attr_reader :presence_fields, :value_fields, :block, :options
+    attr_reader :presence_fields, :value_fields, :block, :force, :options
 
-    def initialize(presence_fields:, value_fields:, block:)
+    def initialize(presence_fields:, value_fields:, block:, force: false)
       @options = extract_options!(value_fields)
 
-      @presence_fields, @value_fields, @block =
-        presence_fields, value_fields, block
+      @presence_fields, @value_fields, @block, @force =
+        presence_fields, value_fields, block, force
     end
 
     def fits?(query)
       return false unless conditions_met_by?(query)
+      return true if force
 
       (presence_fields.size == 0 && value_fields.size == 0) ||
         values_for(query.params).all?{ |value| present?(value) }
@@ -28,7 +29,12 @@ module Parascope
     end
 
     def index
-      options[:index] || 0
+      case options[:index]
+      when :first  then -Float::INFINITY
+      when :last   then Float::INFINITY
+      when Numeric then options[:index]
+      else 0
+      end
     end
 
     private

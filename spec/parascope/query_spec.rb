@@ -19,7 +19,7 @@ RSpec.describe Parascope::Query do
     end
   end
 
-  subject(:resolve_scope) { query.resolved_scope.to_h }
+  subject(:resolved_scope) { query.resolved_scope.to_h }
 
   describe 'querying' do
     describe 'presence field' do
@@ -59,6 +59,22 @@ RSpec.describe Parascope::Query do
         params foo: 'exact_value'
 
         it { is_expected.to match(value_field: 'value') }
+      end
+    end
+
+    describe 'force query' do
+      feature do
+        query_by!(:foo) do |foo|
+          scope.tap{ scope.foo = foo }
+        end
+      end
+
+      context 'when param is not present' do
+        params foo: ''
+
+        it 'applies query anyway' do
+          expect(resolved_scope).to match(foo: '')
+        end
       end
     end
 
@@ -204,6 +220,22 @@ RSpec.describe Parascope::Query do
 
         it { is_expected.to match(foo_sift: 'from bar') }
       end
+
+      describe 'force sifting' do
+        feature do
+          sift_by! :foo do |foo|
+            query { scope.tap{ scope.foo = foo } }
+          end
+        end
+
+        context 'when param is not present' do
+          params foo: ''
+
+          it 'applies sifter anyway' do
+            expect(resolved_scope).to match(foo: '')
+          end
+        end
+      end
     end
 
     describe 'defaults' do
@@ -248,7 +280,7 @@ RSpec.describe Parascope::Query do
       context 'when not specified' do
         let(:query_klass) { Class.new(Parascope::Query) }
 
-        specify { expect{ resolve_scope }.to raise_error(Parascope::UndefinedScopeError) }
+        specify { expect{ resolved_scope }.to raise_error(Parascope::UndefinedScopeError) }
       end
 
       describe 'base_scope in sifter' do
@@ -309,16 +341,18 @@ RSpec.describe Parascope::Query do
       feature do
         base_scope { OpenStruct.new(value: []) }
 
+        query(index: :last) { scope.tap{ scope.value << 'last' } }
         query { scope.tap{ scope.value << 'bar' } }
         query(index: -1) { scope.tap{ scope.value << 'foo' } }
         query { scope.tap{ scope.value << 'baz' } }
+        query(index: :first) { scope.tap{ scope.value << 'first' } }
       end
 
       let(:query) { query_klass.build }
 
       subject { query.resolved_scope.to_h }
 
-      it { is_expected.to eq(value: ['foo', 'bar', 'baz']) }
+      it { is_expected.to eq(value: ['first', 'foo', 'bar', 'baz', 'last']) }
     end
   end
 
