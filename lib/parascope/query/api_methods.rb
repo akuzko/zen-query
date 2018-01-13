@@ -5,6 +5,7 @@ module Parascope
 
       @base_scope = block
     end
+    alias_method :base_dataset, :base_scope
 
     def defaults(params = nil)
       @defaults ||= {}

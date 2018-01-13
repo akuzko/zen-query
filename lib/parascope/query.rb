@@ -21,9 +21,9 @@ module Parascope
       new({}, **attrs)
     end
 
-    def initialize(params, scope: nil, **attrs)
+    def initialize(params, scope: nil, dataset: nil, **attrs)
       @params = Hashie::Mash.new(klass.defaults).merge(params || {})
-      @scope  = scope unless scope.nil?
+      @scope  = scope || dataset unless scope.nil? && dataset.nil?
       @attrs  = attrs.freeze
       @base_params = @params
       define_attr_readers
@@ -32,6 +32,7 @@ module Parascope
     def scope
       @scope ||= base_scope
     end
+    alias_method :dataset, :scope
 
     def base_scope
       scope = klass.ancestors
@@ -47,6 +48,7 @@ module Parascope
 
       scope
     end
+    alias_method :base_dataset, :base_scope
 
     def resolved_scope(*args)
       arg_params = args.pop if args.last.is_a?(Hash)
@@ -54,6 +56,8 @@ module Parascope
 
       clone_with_params(trues(args).merge(arg_params || {})).resolved_scope
     end
+    alias_method :resolved_dataset, :resolved_scope
+    alias_method :resolve, :resolved_scope
 
     def klass
       sifted? ? singleton_class : self.class

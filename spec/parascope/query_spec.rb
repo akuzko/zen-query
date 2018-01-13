@@ -401,4 +401,25 @@ RSpec.describe Parascope::Query do
       end
     end
   end
+
+  describe 'aliases' do
+    feature do
+      base_dataset { OpenStruct.new(foo: 'bar') }
+
+      query { dataset.tap{ |ds| ds.bar = 'baz' } }
+    end
+
+    specify '#resolved_dataset' do
+      expect(query.resolved_dataset.to_h).to eq(foo: 'bar', bar: 'baz')
+    end
+
+    specify '#resolve' do
+      expect(query.resolve.to_h).to eq(foo: 'bar', bar: 'baz')
+    end
+
+    specify ':dataset initialize option' do
+      query = query_klass.build(dataset: OpenStruct.new(baz: 'bak'))
+      expect(query.resolve.to_h).to eq(baz: 'bak', bar: 'baz')
+    end
+  end
 end

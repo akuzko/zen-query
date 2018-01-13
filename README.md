@@ -136,6 +136,8 @@ end
   top-level base scope is yielded to the method block. Note that `base_scope` will
   not be called if query is initialized with a given scope.
 
+  *Alias:* `base_dataset`
+
 *Examples:*
 
 ```ruby
@@ -180,8 +182,7 @@ end
 - `build(scope: nil, **attributes)` initializes a query with empty params. Handy when
   query depends only passed attributes and internal logic. Also useful in specs.
 
-  *Examples:*
-
+*Examples:*
 
 ```ruby
 query = UsersQuery.build(scope: users_scope)
@@ -190,9 +191,10 @@ query = UsersQuery.build(scope: users_scope)
 
 #### Instance Methods
 
-- `initialize(params, scope: nil, **attributes)` initializes a query with `params`,
-  an optional scope (that if passed, is used instead of `base_scope`). All additionally
-  passed options are accessible via reader methods in query blocks and elsewhere.
+- `initialize(params, scope: nil, dataset: nil, **attributes)` initializes a query with
+  `params`, an optional scope can be passed as `:scope` or `:dataset` option. If passed,
+  it will be used instead of `base_scope`. All additionally passed options are accessible
+  via reader methods in query blocks and elsewhere.
 
 *Examples:*
 
@@ -206,6 +208,8 @@ query = UsersQuery.new(query_params, company: company)
 - `scope` "current" scope of query object. For an initialized query object corresponds
   to base scope. Primary usage is to call this method in `query_by` blocks and return
   it's mutated version corresponding to passed `query_by` arguments.
+
+  *Alias:* `dataset`
 
 - `guard(&block)` executes a passed `block`. If this execution returns falsy value,
   `GuardViolationError` is raised. You can use this method to ensure safety of param
@@ -230,6 +234,8 @@ end
   to `true` with params (for example, `resolved_scope(:with_projects)` instead of
   `resolved_scope(with_projects: true)`). It's the main `Query` instance method that
   returns the sole purpose of it's instances.
+
+  *Aliases:* `resolved_dataset`, `resolve`
 
 *Examples:*
 
