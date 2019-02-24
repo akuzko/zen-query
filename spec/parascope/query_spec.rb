@@ -381,6 +381,21 @@ RSpec.describe Parascope::Query do
           expect{ query.resolved_scope }.not_to raise_error
         end
       end
+
+      context 'with custom message' do
+        feature do
+          raise_on_guard_violation false
+
+          guard('foo should be "foo"') { params[:foo] == 'foo' }
+        end
+
+        params foo: 'bar'
+
+        it 'persists violation message' do
+          query.resolved_scope
+          expect(query.violation).to eq('foo should be "foo"')
+        end
+      end
     end
 
     describe 'instance method' do
@@ -397,6 +412,42 @@ RSpec.describe Parascope::Query do
 
         it 'does not raise error' do
           expect{ query.resolved_scope }.not_to raise_error
+        end
+      end
+
+      context 'with custom message' do
+        feature do
+          raise_on_guard_violation false
+
+          query_by(:bar) do |bar|
+            guard('bar should be "bar"') { bar == 'BAR' }
+          end
+        end
+
+        params bar: 'baz'
+
+        it 'persists violation message' do
+          query.resolved_scope
+          expect(query.violation).to eq('bar should be "bar"')
+        end
+      end
+    end
+
+    describe 'raise_on_guard_violation option' do
+      context 'when disabled' do
+        feature do
+          raise_on_guard_violation false
+
+          query_by(:bar) do |bar|
+            guard { bar.upcase == 'BAR' }
+          end
+        end
+
+        params bar: 'bak'
+
+        it 'resolves scope to nil and persists violation message' do
+          expect(query.resolved_scope).to be_nil
+          expect(query.violation).to match(/guard block violated/)
         end
       end
     end

@@ -5,4 +5,6 @@ module Parascope
   GuardViolationError = Class.new(ArgumentError)
 
   autoload :Query, "parascope/query"
+
+  Query.raise_on_guard_violation true
 end

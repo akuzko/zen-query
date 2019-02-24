@@ -7,9 +7,10 @@ module Parascope
 
     extend ApiMethods
 
-    attr_reader :params
+    attr_reader :params, :violation
 
     def self.inherited(subclass)
+      subclass.raise_on_guard_violation raise_on_guard_violation?
       subclass.query_blocks.replace query_blocks.dup
       subclass.sift_blocks.replace sift_blocks.dup
       subclass.guard_blocks.replace guard_blocks.dup
@@ -19,6 +20,14 @@ module Parascope
 
     def self.build(**attrs)
       new({}, **attrs)
+    end
+
+    def self.raise_on_guard_violation(value)
+      @raise_on_guard_violation = !!value
+    end
+
+    def self.raise_on_guard_violation?
+      @raise_on_guard_violation
     end
 
     def initialize(params, scope: nil, dataset: nil, **attrs)
@@ -51,10 +60,14 @@ module Parascope
     alias_method :base_dataset, :base_scope
 
     def resolved_scope(*args)
+      @violation = nil
       arg_params = args.pop if args.last.is_a?(Hash)
       return sifted_instance.resolved_scope! if arg_params.nil? && args.empty?
 
       clone_with_params(trues(args).merge(arg_params || {})).resolved_scope
+    rescue GuardViolationError => error
+      @violation = error.message
+      raise if self.class.raise_on_guard_violation?
     end
     alias_method :resolved_dataset, :resolved_scope
     alias_method :resolve, :resolved_scope
@@ -138,13 +151,15 @@ module Parascope
     private
 
     def guard_all
-      klass.guard_blocks.each{ |block| guard(&block) }
+      klass.guard_blocks.each{ |message, block| guard(message, &block) }
     end
 
-    def guard(&block)
-      unless instance_exec(&block)
-        fail GuardViolationError, "guard block violated on #{block.source_location.join(':')}"
-      end
+    def guard(message = nil, &block)
+      return if instance_exec(&block)
+
+      violation = message || "guard block violated on #{block.source_location.join(':')}"
+
+      fail GuardViolationError, violation
     end
 
     def sifted_instance_for(blocks)

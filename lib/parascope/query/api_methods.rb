@@ -55,8 +55,8 @@ module Parascope
     alias_method :sifter!, :sift_by!
     alias_method :query!, :query_by!
 
-    def guard(&block)
-      guard_blocks.push block
+    def guard(message = nil, &block)
+      guard_blocks.push([message, block])
     end
 
     def sift_blocks

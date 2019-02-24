@@ -6,12 +6,14 @@ require "parascope"
 require 'ostruct'
 
 class Query < Parascope::Query
+  raise_on_guard_violation false
+
   defaults barbak: 'barbak'
 
   base_scope { OpenStruct.new }
 
   query_by :foo do |foo|
-    guard { foo == 'foo' }
+    guard('wrong value for :foo param. try "foo"') { foo == 'foo' }
 
     scope.tap{ scope.foo = foo }
   end

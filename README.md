@@ -163,9 +163,10 @@ sifter :paginated do
 end
 ```
 
-- `guard(&block)` defines a guard instance method block (see instance methods
+- `guard(message = nil, &block)` defines a guard instance method block (see instance methods
   bellow). All such blocks are executed before query object resolves scope via
-  `resolve_scope` method.
+  `resolve_scope` method. Optional `message` may be supplied to provide more informative
+  error message.
 
 *Examples:*
 
@@ -173,10 +174,37 @@ end
 sift_by(:sort_col, :sort_dir) do |scol, sdir|
   # will raise Parascope::GuardViolationError on scope resolution if
   # params[:sort_dir] is not 'asc' or 'desc'
-  guard { sdir.downcase.in?(%w(asc desc)) }
+  guard(':sort_dir should be "asc" or "desc"') do
+    sdir.downcase.in?(%w(asc desc))
+  end
 
   base_scope { |scope| scope.order(scol => sdir) }
 end
+```
+
+- `raise_on_guard_violation(value)` allows to specify whether or not exception should be raised
+  whenever any guard block is violated during scope resolution. When set to `false`, in case
+  of any violation, `resolved_scope` will return `nil`, and query will have `violation` property
+  set with value corresponding to the message of violated block. Default option value is `true`.
+
+*Examples:*
+
+```ruby
+raise_on_guard_violation false
+
+sift_by(:sort_col, :sort_dir) do |scol, sdir|
+  guard(':sort_dir should be "asc" or "desc"') do
+    sdir.downcase.in?(%w(asc desc))
+  end
+
+  base_scope { |scope| scope.order(scol => sdir) }
+end
+```
+
+```ruby
+query = UsersQuery.new(sort_col: 'id', sort_dir: 'there')
+query.resolved_scope # => nil
+query.violation # => ":sort_dir should be \"asc\" or \"desc\""
 ```
 
 - `build(scope: nil, **attributes)` initializes a query with empty params. Handy when
