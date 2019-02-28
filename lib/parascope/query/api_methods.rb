@@ -7,12 +7,26 @@ module Parascope
     end
     alias_method :base_dataset, :base_scope
 
-    def defaults(params = nil)
-      @defaults ||= {}
+    def defaults(params = nil, &block)
+      return @defaults if params.nil? && !block_given?
 
-      return @defaults if params.nil?
+      if block_given? && !params.nil?
+        defaults(params)
+        defaults(&block)
+      elsif !block_given? && Proc === params
+        @defaults = params
+      elsif !block_given?
+        defaults { params }
+      elsif @defaults.nil?
+        @defaults = block
+      else
+        _defaults = @defaults
+        @defaults = -> { block.call.merge(_defaults.call) }
+      end
+    end
 
-      @defaults = @defaults.merge(params)
+    def fetch_defaults
+      defaults.nil? ? {} : defaults.call
     end
 
     def sift_by(*presence_fields, **value_fields, &block)

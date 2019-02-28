@@ -274,6 +274,41 @@ RSpec.describe Parascope::Query do
 
         it { is_expected.to match(baz: 'baz') }
       end
+
+      describe 'block usage' do
+        feature do
+          defaults(foo: 'foo') do
+            {voo: 'voo'}
+          end
+
+          sifter :bar do
+            defaults do
+              {baz: 'baz'}
+            end
+          end
+        end
+
+        let(:inherited_query_klass) do
+          Class.new(query_klass) do
+            defaults do
+              {bak: 'bak'}
+            end
+
+            query do
+              scope.tap do
+                scope.foo = params.foo
+                scope.voo = params.voo
+                scope.baz = params.baz
+                scope.bak = params.bak
+              end
+            end
+          end
+        end
+
+        let(:query) { inherited_query_klass.new(bar: true) }
+
+        it { is_expected.to match(foo: 'foo', voo: 'voo', baz: 'baz', bak: 'bak') }
+      end
     end
 
     describe 'base scopes' do

@@ -148,18 +148,31 @@ sifter :with_department do
 end
 ```
 
-- `defaults(hash)` method is used to declare default query params that are reverse
-  merged with params passed on query initialization. When used in `sift_by` block,
-  hashes are merged altogether.
+- `defaults(hash, &block)` method is used to declare default query params that are
+  reverse merged with params passed on query initialization. When used in `sift_by`
+  block, hashes are merged altogether. If `block` is passed, it's return value
+  will be evaluated and merged on query object instantiation, allowing to have
+  dynamic default params values. It is also allowed to have multiple `defaults`
+  method calls.
 
 *Examples:*
 
 ```ruby
 defaults only_active: true
+defaults { {later_than: 1.week.ago} }
 
 sifter :paginated do
   # sifter defaults are merged with higher-level defaults:
   defaults page: 1, per_page: 25
+end
+```
+
+It is also possible to use both static arguments and block in `defaults` method call.
+Thus, the sample above can also be written with one `defaults` method call:
+
+```ruby
+defaults only_active: true do
+  {later_than: 1.week.ago}
 end
 ```
 

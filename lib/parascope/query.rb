@@ -10,12 +10,12 @@ module Parascope
     attr_reader :params, :violation
 
     def self.inherited(subclass)
-      subclass.raise_on_guard_violation raise_on_guard_violation?
-      subclass.query_blocks.replace query_blocks.dup
-      subclass.sift_blocks.replace sift_blocks.dup
-      subclass.guard_blocks.replace guard_blocks.dup
+      subclass.raise_on_guard_violation(raise_on_guard_violation?)
+      subclass.query_blocks.replace(query_blocks.dup)
+      subclass.sift_blocks.replace(sift_blocks.dup)
+      subclass.guard_blocks.replace(guard_blocks.dup)
       subclass.base_scope(&base_scope)
-      subclass.defaults defaults
+      subclass.defaults(defaults)
     end
 
     def self.build(**attrs)
@@ -31,7 +31,7 @@ module Parascope
     end
 
     def initialize(params, scope: nil, dataset: nil, **attrs)
-      @params = Hashie::Mash.new(klass.defaults).merge(params || {})
+      @params = Hashie::Mash.new(klass.fetch_defaults).merge(params || {})
       @scope  = scope || dataset unless scope.nil? && dataset.nil?
       @attrs  = attrs.freeze
       @base_params = @params
@@ -106,13 +106,13 @@ module Parascope
     def sifted!(query, blocks)
       @attrs = query.attrs
       define_attr_readers
-      singleton_class.query_blocks.replace query.klass.query_blocks.dup
-      singleton_class.guard_blocks.replace query.klass.guard_blocks.dup
+      singleton_class.query_blocks.replace(query.klass.query_blocks.dup)
+      singleton_class.guard_blocks.replace(query.klass.guard_blocks.dup)
       singleton_class.base_scope(&query.klass.base_scope)
       blocks.each do |block|
         singleton_class.instance_exec(*block.values_for(params), &block.block)
       end
-      params.replace(singleton_class.defaults.merge(params))
+      params.replace(singleton_class.fetch_defaults.merge(params))
       @sifted = true
     end
 

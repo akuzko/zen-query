@@ -9,6 +9,7 @@ class Query < Parascope::Query
   raise_on_guard_violation false
 
   defaults barbak: 'barbak'
+  defaults { {time: Time.now} }
 
   base_scope { OpenStruct.new }
 
