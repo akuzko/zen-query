@@ -1,56 +1,57 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require "bundler/setup"
 require "parascope"
 
-require 'ostruct'
+require "ostruct"
 
 class Query < Parascope::Query
   raise_on_guard_violation false
 
-  defaults barbak: 'barbak'
-  defaults { {time: Time.now} }
+  defaults barbak: "barbak"
+  defaults { { time: Time.now } }
 
   base_scope { OpenStruct.new }
 
   query_by :foo do |foo|
-    guard('wrong value for :foo param. try "foo"') { foo == 'foo' }
+    guard('wrong value for :foo param. try "foo"') { foo == "foo" }
 
-    scope.tap{ scope.foo = foo }
+    scope.tap { scope.foo = foo }
   end
 
-  query_by bar: 'bar' do
-    scope.tap{ scope.bar = 'bar' }
+  query_by bar: "bar" do
+    scope.tap { scope.bar = "bar" }
   end
 
-  sift_by baz: 'baz' do |baz|
-    defaults bakbar: 'bakbar'
+  sift_by baz: "baz" do |baz|
+    defaults bakbar: "bakbar"
 
-    guard { upcase(baz) == 'BAZ' }
+    guard { upcase(baz) == "BAZ" }
 
-    base_scope { |scope| scope.tap{ scope.baz = 'baz' } }
+    base_scope { |scope| scope.tap { scope.baz = "baz" } }
 
     query_by :bak do |bak|
-      scope.tap{ scope.bak = bak }
+      scope.tap { scope.bak = bak }
     end
 
     query_by :barbak do |barbak|
-      scope.tap{ scope.barbak = barbak }
+      scope.tap { scope.barbak = barbak }
     end
 
     sift_by :nested_baz do |nested_baz|
       query_by :bakbar do |bakbar|
-        scope.tap{ scope.bakbar = [baz, nested_baz, bakbar].join('-') }
+        scope.tap { scope.bakbar = [baz, nested_baz, bakbar].join("-") }
       end
     end
   end
 
   sift_by :other_baz do |other|
-    query { scope.tap{ scope.other_baz = other } }
+    query { scope.tap { scope.other_baz = other } }
   end
 
-  query(if: :condition?) { scope.tap{ scope.by_instance_condition = true } }
-  query(unless: :bad_condition?) { scope.tap{ scope.not_bad_condition = true } }
+  query(if: :condition?) { scope.tap { scope.by_instance_condition = true } }
+  query(unless: :bad_condition?) { scope.tap { scope.not_bad_condition = true } }
 
   def condition?
     !!params[:condition]
@@ -61,7 +62,7 @@ class Query < Parascope::Query
   end
 end
 
-q = Query.new(foo: 'foo', bar: 'bar', baz: 'baz', bak: 'bak', nested_baz: 'nb', other_baz: 'ob')
+# q = Query.new(foo: "foo", bar: "bar", baz: "baz", bak: "bak", nested_baz: "nb", other_baz: "ob")
 
 require "pry"
 Pry.start

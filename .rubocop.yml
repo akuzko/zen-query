@@ -1,0 +1,36 @@
+AllCops:
+  NewCops: disable
+  TargetRubyVersion: 2.4
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented_relative_to_receiver
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/AccessModifierDeclarations:
+  EnforcedStyle: group
+
+Style/Documentation:
+  Enabled: false
+
+Style/LambdaCall:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/DoubleNegation:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 20
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*.rb'
+    - 'parascope.gemspec'
+
+Layout/LineLength:
+  Exclude:
+    - 'spec/**/*.rb'

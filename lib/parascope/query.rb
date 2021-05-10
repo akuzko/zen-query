@@ -1,15 +1,15 @@
-require "hashie/mash"
+# frozen_string_literal: true
+
+require_relative "query/api_methods"
+require_relative "query/api_block"
 
 module Parascope
-  class Query
-    autoload :ApiMethods, "parascope/query/api_methods"
-    autoload :ApiBlock, "parascope/query/api_block"
-
+  class Query # rubocop:disable Metrics/ClassLength
     extend ApiMethods
 
     attr_reader :params, :violation
 
-    def self.inherited(subclass)
+    def self.inherited(subclass) # rubocop:disable Metrics/AbcSize
       subclass.raise_on_guard_violation(raise_on_guard_violation?)
       subclass.query_blocks.replace(query_blocks.dup)
       subclass.sift_blocks.replace(sift_blocks.dup)
@@ -31,7 +31,7 @@ module Parascope
     end
 
     def initialize(params, scope: nil, dataset: nil, **attrs)
-      @params = Hashie::Mash.new(klass.fetch_defaults).merge(params || {})
+      @params = klass.fetch_defaults.merge(params || {})
       @scope  = scope || dataset unless scope.nil? && dataset.nil?
       @attrs  = attrs.freeze
       @base_params = @params
@@ -41,23 +41,23 @@ module Parascope
     def scope
       @scope ||= base_scope
     end
-    alias_method :dataset, :scope
+    alias dataset scope
 
     def base_scope
-      scope = klass.ancestors
-        .select{ |klass| klass < Query }
-        .reverse
-        .map(&:base_scope)
-        .compact
-        .reduce(nil){ |scope, block| instance_exec(scope, &block) }
+      scope =
+        klass
+          .ancestors
+          .select { |klass| klass < Query }
+          .reverse
+          .map(&:base_scope)
+          .compact
+          .reduce(nil) { |base_scope, block| instance_exec(base_scope, &block) }
 
-      if scope.nil?
-        fail UndefinedScopeError, "failed to build scope. Have you missed base_scope definition?"
-      end
+      raise UndefinedScopeError, "failed to build scope. Have you missed base_scope definition?" if scope.nil?
 
       scope
     end
-    alias_method :base_dataset, :base_scope
+    alias base_dataset base_scope
 
     def resolved_scope(*args)
       @violation = nil
@@ -65,12 +65,12 @@ module Parascope
       return sifted_instance.resolved_scope! if arg_params.nil? && args.empty?
 
       clone_with_params(trues(args).merge(arg_params || {})).resolved_scope
-    rescue GuardViolationError => error
-      @violation = error.message
+    rescue GuardViolationError => e
+      @violation = e.message
       raise if self.class.raise_on_guard_violation?
     end
-    alias_method :resolved_dataset, :resolved_scope
-    alias_method :resolve, :resolved_scope
+    alias resolved_dataset resolved_scope
+    alias resolve resolved_scope
 
     def klass
       sifted? ? singleton_class : self.class
@@ -83,9 +83,9 @@ module Parascope
     attr_reader :attrs
 
     def sifted_instance
-      blocks = klass.sift_blocks.select{ |block| block.fits?(self) }
+      blocks = klass.sift_blocks.select { |block| block.fits?(self) }
 
-      blocks.size > 0 ? sifted_instance_for(blocks) : self
+      blocks.empty? ? self : sifted_instance_for(blocks)
     end
 
     def resolved_scope!
@@ -96,14 +96,14 @@ module Parascope
     end
 
     def apply_block!
-      if block && block.fits?(self)
+      if block&.fits?(self)
         scope  = instance_exec(*block.values_for(params), &block.block)
         @scope = scope unless scope.nil?
       end
       self
     end
 
-    def sifted!(query, blocks)
+    def sifted!(query, blocks) # rubocop:disable Metrics/AbcSize
       @attrs = query.attrs
       define_attr_readers
       singleton_class.query_blocks.replace(query.klass.query_blocks.dup)
@@ -130,8 +130,8 @@ module Parascope
     def clone_with_params(other_params)
       dup.tap do |query|
         query.params = @base_params.merge(other_params)
-        query.remove_instance_variable('@sifted') if query.instance_variable_defined?('@sifted')
-        query.remove_instance_variable('@scope') if query.instance_variable_defined?('@scope')
+        query.remove_instance_variable("@sifted") if query.instance_variable_defined?("@sifted")
+        query.remove_instance_variable("@scope") if query.instance_variable_defined?("@scope")
         query.define_attr_readers
       end
     end
@@ -144,14 +144,14 @@ module Parascope
 
     def define_attr_readers
       @attrs.each do |name, value|
-        define_singleton_method(name){ value }
+        define_singleton_method(name) { value }
       end
     end
 
     private
 
     def guard_all
-      klass.guard_blocks.each{ |message, block| guard(message, &block) }
+      klass.guard_blocks.each { |message, block| guard(message, &block) }
     end
 
     def guard(message = nil, &block)
@@ -159,7 +159,7 @@ module Parascope
 
       violation = message || "guard block violated on #{block.source_location.join(':')}"
 
-      fail GuardViolationError, violation
+      raise GuardViolationError, violation
     end
 
     def sifted_instance_for(blocks)
