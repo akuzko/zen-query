@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
-require_relative "query/api_methods"
 require_relative "query/api_block"
+require_relative "query/api_methods"
+require_relative "query/attributes"
 
 module Parascope
   class Query # rubocop:disable Metrics/ClassLength
     extend ApiMethods
+    include Attributes
 
     attr_reader :params, :violation
 
@@ -14,63 +16,47 @@ module Parascope
       subclass.query_blocks.replace(query_blocks.dup)
       subclass.sift_blocks.replace(sift_blocks.dup)
       subclass.guard_blocks.replace(guard_blocks.dup)
-      subclass.base_scope(&base_scope)
-      subclass.defaults(defaults)
+      subclass.subject(&subject)
+      subclass.defaults(&defaults) unless defaults.nil?
+      super
     end
 
-    def self.build(**attrs)
-      new({}, **attrs)
-    end
-
-    def self.raise_on_guard_violation(value)
-      @raise_on_guard_violation = !!value
-    end
-
-    def self.raise_on_guard_violation?
-      @raise_on_guard_violation
-    end
-
-    def initialize(params, scope: nil, dataset: nil, **attrs)
-      @params = klass.fetch_defaults.merge(params || {})
-      @scope  = scope || dataset unless scope.nil? && dataset.nil?
-      @attrs  = attrs.freeze
+    def initialize(params: {}, **attrs)
+      @params  = klass.fetch_defaults.merge(params)
+      @subject = attrs.delete(self.class.subject_name)
       @base_params = @params
-      define_attr_readers
+      super
     end
 
-    def scope
-      @scope ||= base_scope
+    def subject
+      @subject ||= base_subject
     end
-    alias dataset scope
 
-    def base_scope
-      scope =
+    def base_subject
+      subject =
         klass
           .ancestors
-          .select { |klass| klass < Query }
-          .reverse
-          .map(&:base_scope)
+          .select { |mod| mod.respond_to?(:subject) }
+          .map(&:subject)
           .compact
-          .reduce(nil) { |base_scope, block| instance_exec(base_scope, &block) }
+          .first
+          &.call
 
-      raise UndefinedScopeError, "failed to build scope. Have you missed base_scope definition?" if scope.nil?
+      raise UndefinedSubjectError, "failed to build subject. Have you missed subject definition?" if subject.nil?
 
-      scope
+      subject
     end
-    alias base_dataset base_scope
 
-    def resolved_scope(*args)
+    def resolve(*args)
       @violation = nil
       arg_params = args.pop if args.last.is_a?(Hash)
-      return sifted_instance.resolved_scope! if arg_params.nil? && args.empty?
+      return sifted_instance.resolve! if arg_params.nil? && args.empty?
 
-      clone_with_params(trues(args).merge(arg_params || {})).resolved_scope
+      clone_with_params(trues(args).merge(arg_params || {})).resolve
     rescue GuardViolationError => e
       @violation = e.message
       raise if self.class.raise_on_guard_violation?
     end
-    alias resolved_dataset resolved_scope
-    alias resolve resolved_scope
 
     def klass
       sifted? ? singleton_class : self.class
@@ -78,7 +64,7 @@ module Parascope
 
     protected
 
-    attr_writer :scope, :params
+    attr_writer :subject, :params
     attr_accessor :block
     attr_reader :attrs
 
@@ -88,27 +74,25 @@ module Parascope
       blocks.empty? ? self : sifted_instance_for(blocks)
     end
 
-    def resolved_scope!
+    def resolve!
       guard_all
-      klass.sorted_query_blocks.reduce(scope) do |scope, block|
-        clone_with_scope(scope, block).apply_block!.scope
+      klass.sorted_query_blocks.reduce(subject) do |subject, block|
+        clone_with_subject(subject, block).apply_block!.subject
       end
     end
 
     def apply_block!
       if block&.fits?(self)
-        scope  = instance_exec(*block.values_for(params), &block.block)
-        @scope = scope unless scope.nil?
+        subject  = instance_exec(*block.values_for(params), &block.block)
+        @subject = subject unless subject.nil?
       end
       self
     end
 
     def sifted!(query, blocks) # rubocop:disable Metrics/AbcSize
-      @attrs = query.attrs
-      define_attr_readers
       singleton_class.query_blocks.replace(query.klass.query_blocks.dup)
       singleton_class.guard_blocks.replace(query.klass.guard_blocks.dup)
-      singleton_class.base_scope(&query.klass.base_scope)
+      singleton_class.subject(&query.klass.subject)
       blocks.each do |block|
         singleton_class.instance_exec(*block.values_for(params), &block.block)
       end
@@ -120,9 +104,9 @@ module Parascope
       !!@sifted
     end
 
-    def clone_with_scope(scope, block = nil)
+    def clone_with_subject(subject, block = nil)
       clone.tap do |query|
-        query.scope = scope
+        query.subject = subject
         query.block = block
       end
     end
@@ -131,20 +115,13 @@ module Parascope
       dup.tap do |query|
         query.params = @base_params.merge(other_params)
         query.remove_instance_variable("@sifted") if query.instance_variable_defined?("@sifted")
-        query.remove_instance_variable("@scope") if query.instance_variable_defined?("@scope")
-        query.define_attr_readers
+        query.remove_instance_variable("@subject") if query.instance_variable_defined?("@subject")
       end
     end
 
     def clone_sifted_with(blocks)
       dup.tap do |query|
         query.sifted!(self, blocks)
-      end
-    end
-
-    def define_attr_readers
-      @attrs.each do |name, value|
-        define_singleton_method(name) { value }
       end
     end
 

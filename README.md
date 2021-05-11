@@ -31,10 +31,13 @@ Or install it yourself as:
 
 Despite the fact `parascope` was intended to help building ActiveRecord relations
 via scopes or query methods, it's usage is not limited to ActiveRecord cases and
-may be used with any arbitrary classes and objects. In fact, the only gem's dependency
-is `hashie`, and for development and testing, `OpenStruct` instance is used as a
-generic scope object. However, ActiveRecord examples should illustrate gem's usage
-in the best way.
+may be used with any arbitrary classes and objects. In fact, for development and
+testing, `OpenStruct` instance is used as a generic subject. However, ActiveRecord
+examples should illustrate gem's usage in the best way.
+
+For most examples in this README, `scope` method is used as accessor to
+current subject value. This behavior is easily achieved via `Query.alias_subject_name(:scope)`
+method call.
 
 ### API
 
@@ -131,48 +134,30 @@ def paginated_records
 end
 ```
 
-- `base_scope(&block)` method is used to define a base scope as a starting point
-  of scope-generating process. If this method is called from `sift_by` block,
-  top-level base scope is yielded to the method block. Note that `base_scope` will
-  not be called if query is initialized with a given scope.
-
-  *Alias:* `base_dataset`
+- `subject(&block)` method is used to define a base subject as a starting point
+  of subject-generating process. Note that `subject` will not be evaluated if
+  query is initialized with a given subject.
 
 *Examples:*
 
 ```ruby
-base_scope { company.users }
-
-sifter :with_department do
-  base_scope { |scope| scope.joins(:department) }
-end
+subject { User.all }
 ```
 
-- `defaults(hash, &block)` method is used to declare default query params that are
+- `defaults(&block)` method is used to declare default query params that are
   reverse merged with params passed on query initialization. When used in `sift_by`
-  block, hashes are merged altogether. If `block` is passed, it's return value
+  block, hashes are merged altogether. Accepts a `block`, it's return value
   will be evaluated and merged on query object instantiation, allowing to have
-  dynamic default params values. It is also allowed to have multiple `defaults`
-  method calls.
+  dynamic default params values.
 
 *Examples:*
 
 ```ruby
-defaults only_active: true
-defaults { {later_than: 1.week.ago} }
+defaults { { later_than: 1.week.ago } }
 
 sifter :paginated do
   # sifter defaults are merged with higher-level defaults:
-  defaults page: 1, per_page: 25
-end
-```
-
-It is also possible to use both static arguments and block in `defaults` method call.
-Thus, the sample above can also be written with one `defaults` method call:
-
-```ruby
-defaults only_active: true do
-  {later_than: 1.week.ago}
+  defaults { { page: 1, per_page: 25 } }
 end
 ```
 
@@ -191,7 +176,7 @@ sift_by(:sort_col, :sort_dir) do |scol, sdir|
     sdir.downcase.in?(%w(asc desc))
   end
 
-  base_scope { |scope| scope.order(scol => sdir) }
+  subject { |scope| scope.order(scol => sdir) }
 end
 ```
 
@@ -210,7 +195,7 @@ sift_by(:sort_col, :sort_dir) do |scol, sdir|
     sdir.downcase.in?(%w(asc desc))
   end
 
-  base_scope { |scope| scope.order(scol => sdir) }
+  subject { |scope| scope.order(scol => sdir) }
 end
 ```
 
@@ -220,37 +205,30 @@ query.resolved_scope # => nil
 query.violation # => ":sort_dir should be \"asc\" or \"desc\""
 ```
 
-- `build(scope: nil, **attributes)` initializes a query with empty params. Handy when
-  query depends only passed attributes and internal logic. Also useful in specs.
-
-*Examples:*
-
-```ruby
-query = UsersQuery.build(scope: users_scope)
-# the same as UsersQuery.new({}, scope: users_scope)
-```
+- `attributes(*attribute_names)` allows to specify additional attributes that can be passed
+  to query object on initialization. For each given attribute name, reader method is generated.
 
 #### Instance Methods
 
-- `initialize(params, scope: nil, dataset: nil, **attributes)` initializes a query with
-  `params`, an optional scope can be passed as `:scope` or `:dataset` option. If passed,
-  it will be used instead of `base_scope`. All additionally passed options are accessible
-  via reader methods in query blocks and elsewhere.
+- `initialize(params: {}, subject: nil, **attributes)` initializes a query with
+  `params`, an optional subject and attributes. If subject is aliased, corresponding
+  key should be used instead. The rest of attributes are only accepted if they were
+  declared via `attributes` class method call.
 
 *Examples:*
 
 ```ruby
-query = UsersQuery.new(query_params, company: company)
+query = UsersQuery.new(params: query_params, company: company)
 ```
 
-- `params` returns a parameters passed in initialization. Is a `Hashie::Mash` instance,
-  thus, values can be accessible via reader methods.
+- `params` returns a parameters passed in initialization, reverse merged with query
+  defaults.
 
-- `scope` "current" scope of query object. For an initialized query object corresponds
-  to base scope. Primary usage is to call this method in `query_by` blocks and return
+- `subject` "current" subject of query object. For an initialized query object corresponds
+  to base subject. Primary usage is to call this method in `query_by` blocks and return
   it's mutated version corresponding to passed `query_by` arguments.
 
-  *Alias:* `dataset`
+  Can be aliased to more suitable name with `Query.alias_subject_name` class method.
 
 - `guard(&block)` executes a passed `block`. If this execution returns falsy value,
   `GuardViolationError` is raised. You can use this method to ensure safety of param
@@ -268,120 +246,104 @@ query_by(:sort_col, :sort_dir) do |scol, sdir|
 end
 ```
 
-- `resolved_scope(*presence_keys, override_params = {})` returns a resulting scope
+- `resolve(*presence_keys, override_params = {})` returns a resulting scope
   generated by all queries and sifted queries that fit to query params applied to
   base scope. Optionally, additional params may be passed to override the ones passed on
   initialization. For convinience, you may pass list of keys that should be resolved
-  to `true` with params (for example, `resolved_scope(:with_projects)` instead of
-  `resolved_scope(with_projects: true)`). It's the main `Query` instance method that
+  to `true` with params (for example, `resolve(:with_projects)` instead of
+  `resolve(with_projects: true)`). It's the main `Query` instance method that
   returns the sole purpose of it's instances.
-
-  *Aliases:* `resolved_dataset`, `resolve`
 
 *Examples:*
 
 ```ruby
-defaults only_active: true
+defaults { { only_active: true } }
 
-base_scope { company.users }
+subject { company.users }
 
-query_by(:only_active) { scope.active }
+query_by(:only_active) { subject.active }
 
 sifter :with_departments do
-  base_scope { scope.joins(:departments) }
+  query { subject.joins(:departments) }
 
-  query_by(:department_name) { |name| scope.where(departments: {name: name}) }
+  query_by(:department_name) do |name|
+    subject.where(departments: { name: name })
+  end
 end
 
 def users
-  @users ||= resolved_scope
+  @users ||= resolve
 end
 
 # you can use options to overwrite defaults:
 def all_users
-  resolved_scope(only_active: false)
+  resolve(only_active: false)
 end
 
 # or to apply a sifter with additional params:
 def managers
-  resolved_scope(:with_departments, department_name: 'managers')
+  resolve(:with_departments, department_name: 'managers')
 end
 ```
 
-### Composite usage example with ActiveRecord Relation as a scope
+### Composite usage example with ActiveRecord Relation as a subject, aliased as `:relation`
 
 ```ruby
 class UserQuery < Parascope::Query
-  defaults only_active: true
+  alias_subject_name :relation
 
-  base_scope { company.users }
+  attributes :company
 
-  query_by(:only_active) { scope.active }
+  defaults { { only_active: true } }
 
-  query_by(:birthdate) { |date| scope.by_birtdate(date) }
+  relation { company.users }
+
+  query_by(:only_active) { relation.active }
+
+  query_by(:birthdate) { |date| relation.by_birtdate(date) }
 
   query_by :name do |name|
-    scope.where("CONCAT(first_name, ' ', last_name) LIKE ?", "%#{name}%")
+    relation.where("CONCAT(first_name, ' ', last_name) LIKE :name", name: "%#{name}%")
   end
 
   sift_by :sort_column, :sort_direction do |scol, sdir|
     guard { sdir.to_s.downcase.in?(%w(asc desc)) }
 
-    base_scope { |scope| scope.order(scol => sdir) }
+    query { relation.order(scol => sdir) }
 
     query_by(sort_column: 'name') do
-      scope.reorder("CONCAT(first_name, ' ', last_name) #{sdir}")
+      relation.reorder("CONCAT(first_name, ' ', last_name) #{sdir}")
     end
   end
 
   sifter :with_projects do
-    base_scope { |scope| scope.joins(:projects) }
+    query { relation.joins(:projects) }
 
     query_by :project_name do |name|
-      scope.where(projects: {name: name})
+      scope.where(projects: { name: name })
     end
   end
 
   def users
-    @users ||= resolved_scope
+    @users ||= resolve
   end
 
   def project_users
-    @project_users ||= resolved_scope(:with_projects)
+    @project_users ||= resolve(:with_projects)
   end
 end
 
-params = {name: 'John', sort_column: 'name', sort_direction: 'DESC', project_name: 'ExampleApp'}
+params = { name: 'John', sort_column: 'name', sort_direction: 'DESC', project_name: 'ExampleApp' }
 
-query = UserQuery.new(params, company: some_company)
+query = UserQuery.new(params: params, company: some_company)
 
 query.project_users # => this is the same as:
 # some_company.users
 #   .active
 #   .joins(:projects)
 #   .where("CONCAT(first_name, ' ', last_name) LIKE ?", "%John%")
-#   .where(projects: {name: 'ExampleApp'})
+#   .where(projects: { name: 'ExampleApp' })
 #   .order("CONCAT(first_name, ' ', last_name) DESC")
-```
-
-### A Note on `base_scope` Blocks
-
-Keep in mind that _all_ `base_scope` blocks are
-**applied only if query object was initialized without explicit scope option**,
-i.e. if your Query class has a sifter with mandatory scope modification, and
-you initialize your query objects with explicit scope, you most likely want
-to use unoptional `query` block within sifter definition. For example,
-
-```rb
-class MyQuery < Parascope::Query
-  sifter :with_projects do
-    query { scope.joins(:projects) }
-
-    # ...
-  end
-end
-
-query = MyQuery.new(params, scope: some_scope)
 ```
 
 ### Hints and Tips

@@ -7,12 +7,13 @@ require "parascope"
 require "ostruct"
 
 class Query < Parascope::Query
-  raise_on_guard_violation false
+  raise_on_guard_violation(false)
 
-  defaults barbak: "barbak"
-  defaults { { time: Time.now } }
+  alias_subject_name(:scope)
 
-  base_scope { OpenStruct.new }
+  subject { OpenStruct.new }
+
+  defaults { { time: Time.now, barbak: "barbak" } }
 
   query_by :foo do |foo|
     guard('wrong value for :foo param. try "foo"') { foo == "foo" }
@@ -25,11 +26,11 @@ class Query < Parascope::Query
   end
 
   sift_by baz: "baz" do |baz|
-    defaults bakbar: "bakbar"
+    defaults { { bakbar: "bakbar" } }
 
     guard { upcase(baz) == "BAZ" }
 
-    base_scope { |scope| scope.tap { scope.baz = "baz" } }
+    query { scope.tap { scope.baz = "baz" } }
 
     query_by :bak do |bak|
       scope.tap { scope.bak = bak }
@@ -57,12 +58,16 @@ class Query < Parascope::Query
     !!params[:condition]
   end
 
+  def bad_condition?
+    !condition?
+  end
+
   def upcase(str)
     str.upcase
   end
 end
 
-# q = Query.new(foo: "foo", bar: "bar", baz: "baz", bak: "bak", nested_baz: "nb", other_baz: "ob")
+# q = Query.new(params: { foo: "foo", bar: "bar", baz: "baz", bak: "bak", nested_baz: "nb", other_baz: "ob" })
 
 require "pry"
 Pry.start

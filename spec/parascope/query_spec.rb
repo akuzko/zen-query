@@ -11,16 +11,20 @@ RSpec.describe Parascope::Query do
     let(:params) { hash }
   end
 
-  let(:query)  { query_klass.new(params) }
+  let(:query)  { query_klass.new(params: params) }
   let(:params) { {} }
   let(:feature_block) { proc {} }
   let(:query_klass) do
-    Class.new(Parascope::Query, &feature_block).tap do |klass|
-      klass.base_scope { OpenStruct.new } if klass.base_scope.nil?
+    feature = feature_block
+
+    Class.new(Parascope::Query) do
+      alias_subject_name(:scope)
+      module_eval(&feature)
+      scope { OpenStruct.new } if scope.nil?
     end
   end
 
-  subject(:resolved_scope) { query.resolved_scope.to_h }
+  subject(:resolve) { query.resolve.to_h }
 
   describe "querying" do
     describe "presence field" do
@@ -74,7 +78,7 @@ RSpec.describe Parascope::Query do
         params foo: ""
 
         it "applies query anyway" do
-          expect(resolved_scope).to match(foo: "")
+          expect(resolve).to match(foo: "")
         end
       end
     end
@@ -213,11 +217,11 @@ RSpec.describe Parascope::Query do
           end
 
           def bar_scope
-            resolved_scope(bar: "from bar")
+            resolve(bar: "from bar")
           end
         end
 
-        subject { query_klass.build.resolved_scope(:foo).to_h }
+        subject { query_klass.new.resolve(:foo).to_h }
 
         it { is_expected.to match(foo_sift: "from bar") }
       end
@@ -233,7 +237,7 @@ RSpec.describe Parascope::Query do
           params foo: ""
 
           it "applies sifter anyway" do
-            expect(resolved_scope).to match(foo: "")
+            expect(resolve).to match(foo: "")
           end
         end
       end
@@ -241,7 +245,7 @@ RSpec.describe Parascope::Query do
 
     describe "defaults" do
       feature do
-        defaults foo: "foo"
+        defaults { { foo: "foo" } }
 
         query_by(:foo) { |value| scope.tap { scope.foo = value } }
       end
@@ -262,10 +266,10 @@ RSpec.describe Parascope::Query do
 
       context "defaults in sifter" do
         feature do
-          defaults foo: "foo"
+          defaults { { foo: "foo" } }
 
           sifter :bar do
-            defaults baz: "baz"
+            defaults { { baz: "baz" } }
 
             query_by(foo: "foo") { scope.tap { scope.baz = params[:baz] } }
           end
@@ -275,107 +279,33 @@ RSpec.describe Parascope::Query do
 
         it { is_expected.to match(baz: "baz") }
       end
-
-      describe "block usage" do
-        feature do
-          defaults(foo: "foo") do
-            { voo: "voo" }
-          end
-
-          sifter :bar do
-            defaults do
-              { baz: "baz" }
-            end
-          end
-        end
-
-        let(:inherited_query_klass) do
-          Class.new(query_klass) do
-            defaults do
-              { bak: "bak" }
-            end
-
-            query do
-              scope.tap do
-                scope.foo = params[:foo]
-                scope.voo = params[:voo]
-                scope.baz = params[:baz]
-                scope.bak = params[:bak]
-              end
-            end
-          end
-        end
-
-        let(:query) { inherited_query_klass.new(bar: true) }
-
-        it { is_expected.to match(foo: "foo", voo: "voo", baz: "baz", bak: "bak") }
-      end
     end
 
-    describe "base scopes" do
+    describe "base subject" do
       context "when not specified" do
         let(:query_klass) { Class.new(Parascope::Query) }
 
-        specify { expect { resolved_scope }.to raise_error(Parascope::UndefinedScopeError) }
-      end
-
-      describe "base_scope in sifter" do
-        feature do
-          base_scope { OpenStruct.new(foo: "foo") }
-
-          sifter :bar do
-            base_scope { |scope| scope.tap { scope.bar = "bar" } }
-          end
-        end
-
-        params bar: true
-
-        it { is_expected.to match(foo: "foo", bar: "bar") }
-      end
-
-      describe "cross-sifter base scopes" do
-        feature do
-          sifter(:foo) do
-            base_scope { OpenStruct.new(foo: true) }
-
-            query { scope.tap { scope.foo_query = true } }
-          end
-
-          sifter(:bar) do
-            base_scope { foo_scope }
-
-            query { scope.tap { scope.bar_query = true } }
-          end
-
-          def foo_scope
-            resolved_scope(:foo)
-          end
-        end
-
-        subject { query_klass.build.resolved_scope(:bar).to_h }
-
-        it { is_expected.to match(foo: true, foo_query: true, bar_query: true) }
+        specify { expect { resolve }.to raise_error(Parascope::UndefinedSubjectError) }
       end
     end
   end
 
   describe "helpers" do
-    describe "build" do
-      let(:query) { query_klass.build }
-
-      specify { expect(query.params).to be_empty }
-    end
-
-    describe "arbitrary readers" do
-      let(:user)  { Object.new }
-      let(:query) { query_klass.build(user: user) }
+    describe "attributes" do
+      let(:query_klass) { Class.new(Parascope::Query) { attributes :user } }
+      let(:user)        { Object.new }
+      let(:query)       { query_klass.new(user: user) }
 
       specify { expect(query.user).to be user }
+
+      it 'raises an error on unknown attributes' do
+        expect { query_klass.new(company: user) }.to raise_error(ArgumentError)
+      end
     end
 
     describe "query application order control" do
       feature do
-        base_scope { OpenStruct.new(value: []) }
+        scope { OpenStruct.new(value: []) }
 
         query(index: :last) { scope.tap { scope.value << "last" } }
         query { scope.tap { scope.value << "bar" } }
@@ -384,9 +314,9 @@ RSpec.describe Parascope::Query do
         query(index: :first) { scope.tap { scope.value << "first" } }
       end
 
-      let(:query) { query_klass.build }
+      let(:query) { query_klass.new }
 
-      subject { query.resolved_scope.to_h }
+      subject { query.resolve.to_h }
 
       it { is_expected.to eq(value: %w[first foo bar baz last]) }
     end
@@ -401,20 +331,20 @@ RSpec.describe Parascope::Query do
       end
     end
     let(:scope) { OpenStruct.new(foo: "foo") }
-    let(:query) { query_klass.new(params, scope: scope) }
+    let(:query) { query_klass.new(params: params, scope: scope) }
 
     describe "class method" do
       context "when expectation failed" do
         let(:scope) { OpenStruct.new }
 
         it "raises error" do
-          expect { query.resolved_scope }.to raise_error(Parascope::GuardViolationError)
+          expect { query.resolve }.to raise_error(Parascope::GuardViolationError)
         end
       end
 
       context "when expectation is met" do
         it "does not raise error" do
-          expect { query.resolved_scope }.not_to raise_error
+          expect { query.resolve }.not_to raise_error
         end
       end
 
@@ -428,7 +358,7 @@ RSpec.describe Parascope::Query do
         params foo: "bar"
 
         it "persists violation message" do
-          query.resolved_scope
+          query.resolve
           expect(query.violation).to eq('foo should be "foo"')
         end
       end
@@ -439,7 +369,7 @@ RSpec.describe Parascope::Query do
         params bar: "bak"
 
         it "raises error" do
-          expect { query.resolved_scope }.to raise_error(Parascope::GuardViolationError)
+          expect { query.resolve }.to raise_error(Parascope::GuardViolationError)
         end
       end
 
@@ -447,7 +377,7 @@ RSpec.describe Parascope::Query do
         params bar: "bar"
 
         it "does not raise error" do
-          expect { query.resolved_scope }.not_to raise_error
+          expect { query.resolve }.not_to raise_error
         end
       end
 
@@ -463,7 +393,7 @@ RSpec.describe Parascope::Query do
         params bar: "baz"
 
         it "persists violation message" do
-          query.resolved_scope
+          query.resolve
           expect(query.violation).to eq('bar should be "bar"')
         end
       end
@@ -482,31 +412,10 @@ RSpec.describe Parascope::Query do
         params bar: "bak"
 
         it "resolves scope to nil and persists violation message" do
-          expect(query.resolved_scope).to be_nil
+          expect(query.resolve).to be_nil
           expect(query.violation).to match(/guard block violated/)
         end
       end
-    end
-  end
-
-  describe "aliases" do
-    feature do
-      base_dataset { OpenStruct.new(foo: "bar") }
-
-      query { dataset.tap { |ds| ds.bar = "baz" } }
-    end
-
-    specify "#resolved_dataset" do
-      expect(query.resolved_dataset.to_h).to eq(foo: "bar", bar: "baz")
-    end
-
-    specify "#resolve" do
-      expect(query.resolve.to_h).to eq(foo: "bar", bar: "baz")
-    end
-
-    specify ":dataset initialize option" do
-      query = query_klass.build(dataset: OpenStruct.new(baz: "bak"))
-      expect(query.resolve.to_h).to eq(baz: "bak", bar: "baz")
     end
   end
 end
