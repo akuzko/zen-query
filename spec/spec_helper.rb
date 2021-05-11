@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "parascope"
+require "zen/query"
 require "pry"
 require "rspec/its"
 

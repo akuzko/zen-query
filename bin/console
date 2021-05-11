@@ -2,11 +2,11 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
-require "parascope"
+require "zen/query"
 
 require "ostruct"
 
-class Query < Parascope::Query
+class Query < Zen::Query
   raise_on_guard_violation(false)
 
   alias_subject_name(:scope)

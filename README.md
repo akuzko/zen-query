@@ -1,13 +1,13 @@
-# Parascope
+# Zen::Query
 
-Param-based scope generation.
+Param-based scope (relation, dataset) generation.
 
-[![build status](https://secure.travis-ci.org/akuzko/parascope.png)](http://travis-ci.org/akuzko/parascope)
-[![github release](https://img.shields.io/github/release/akuzko/parascope.svg)](https://github.com/akuzko/parascope/releases)
+[![build status](https://secure.travis-ci.org/akuzko/zen-query.png)](http://travis-ci.org/akuzko/zen-query)
+[![github release](https://img.shields.io/github/release/akuzko/zen-query.svg)](https://github.com/akuzko/zen-query/releases)
 
 ---
 
-This gem provides a `Parascope::Query` class with a declarative and convenient API
+This gem provides a `Zen::Query` class with a declarative and convenient API
 to build scopes (ActiveRecord relations or arbitrary objects) dynamically, based
 on parameters passed to query object on initialization.
 
@@ -16,7 +16,7 @@ on parameters passed to query object on initialization.
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'parascope'
+gem 'zen-query'
 ```
 
 And then execute:
@@ -25,11 +25,11 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install parascope
+    $ gem install zen-query
 
 ## Usage
 
-Despite the fact `parascope` was intended to help building ActiveRecord relations
+Despite the fact `zen-query` was intended to help building ActiveRecord relations
 via scopes or query methods, it's usage is not limited to ActiveRecord cases and
 may be used with any arbitrary classes and objects. In fact, for development and
 testing, `OpenStruct` instance is used as a generic subject. However, ActiveRecord
@@ -41,7 +41,7 @@ method call.
 
 ### API
 
-`parascope` provides `Parascope::Query` class, descendants of which should declare
+`zen-query` provides `Zen::Query` class, descendants of which should declare
 scope manipulations using `query_by`, `sift_by` and other class methods bellow.
 
 #### Class Methods
@@ -130,7 +130,7 @@ sifter :paginated do
 end
 
 def paginated_records
-  resolved_scope(:paginated)
+  resolve(:paginated)
 end
 ```
 
@@ -170,19 +170,19 @@ end
 
 ```ruby
 sift_by(:sort_col, :sort_dir) do |scol, sdir|
-  # will raise Parascope::GuardViolationError on scope resolution if
+  # will raise Zen::Query::GuardViolationError on scope resolution if
   # params[:sort_dir] is not 'asc' or 'desc'
   guard(':sort_dir should be "asc" or "desc"') do
     sdir.downcase.in?(%w(asc desc))
   end
 
-  subject { |scope| scope.order(scol => sdir) }
+  query { scope.order(scol => sdir) }
 end
 ```
 
 - `raise_on_guard_violation(value)` allows to specify whether or not exception should be raised
   whenever any guard block is violated during scope resolution. When set to `false`, in case
-  of any violation, `resolved_scope` will return `nil`, and query will have `violation` property
+  of any violation, `resolve` will return `nil`, and query will have `violation` property
   set with value corresponding to the message of violated block. Default option value is `true`.
 
 *Examples:*
@@ -195,13 +195,13 @@ sift_by(:sort_col, :sort_dir) do |scol, sdir|
     sdir.downcase.in?(%w(asc desc))
   end
 
-  subject { |scope| scope.order(scol => sdir) }
+  query { scope.order(scol => sdir) }
 end
 ```
 
 ```ruby
 query = UsersQuery.new(sort_col: 'id', sort_dir: 'there')
-query.resolved_scope # => nil
+query.resolve # => nil
 query.violation # => ":sort_dir should be \"asc\" or \"desc\""
 ```
 
@@ -238,7 +238,7 @@ query = UsersQuery.new(params: query_params, company: company)
 
 ```ruby
 query_by(:sort_col, :sort_dir) do |scol, sdir|
-  # will raise Parascope::GuardViolationError on scope resolution if
+  # will raise Zen::Query::GuardViolationError on scope resolution if
   # params[:sort_dir] is not 'asc' or 'desc'
   guard { sdir.downcase.in?(%w(asc desc)) }
 
@@ -289,7 +289,7 @@ end
 ### Composite usage example with ActiveRecord Relation as a subject, aliased as `:relation`
 
 ```ruby
-class UserQuery < Parascope::Query
+class UserQuery < Zen::Query
   alias_subject_name :relation
 
   attributes :company
@@ -365,7 +365,7 @@ query_by(:some_field_id) { |id| scope.where(some_field_id: id) }
 you can do the following to make things more DRY:
 
 ```ruby
-class ApplicationQuery < Parascope::Query
+class ApplicationQuery < Zen::Query
   def self.query_by(*fields, &block)
     block ||= default_query_block(fields)
     super(*fields, &block)
@@ -418,7 +418,7 @@ prompt that will allow you to experiment.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/akuzko/parascope.
+Bug reports and pull requests are welcome on GitHub at https://github.com/akuzko/zen-query.
 
 
 ## License

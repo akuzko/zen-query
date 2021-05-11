@@ -4,10 +4,15 @@ require_relative "query/api_block"
 require_relative "query/api_methods"
 require_relative "query/attributes"
 
-module Parascope
+module Zen
   class Query # rubocop:disable Metrics/ClassLength
+    UndefinedSubjectError = Class.new(StandardError)
+    GuardViolationError = Class.new(ArgumentError)
+
     extend ApiMethods
     include Attributes
+
+    raise_on_guard_violation(true)
 
     attr_reader :params, :violation
 
