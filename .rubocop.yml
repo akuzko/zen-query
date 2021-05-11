@@ -29,7 +29,7 @@ Metrics/MethodLength:
 Metrics/BlockLength:
   Exclude:
     - 'spec/**/*.rb'
-    - 'parascope.gemspec'
+    - 'zen-query.gemspec'
 
 Layout/LineLength:
   Exclude:

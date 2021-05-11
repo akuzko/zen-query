@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Parascope
+module Zen
   class Query
     module ApiMethods
       def alias_subject_name(name)

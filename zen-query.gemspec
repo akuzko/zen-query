@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
-require_relative "lib/parascope/version"
+require_relative "lib/zen/query/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "parascope"
-  spec.version       = Parascope::VERSION
+  spec.name          = "zen-query"
+  spec.version       = Zen::Query::VERSION
   spec.authors       = ["Artem Kuzko"]
   spec.email         = ["a.kuzko@gmail.com"]
 
   spec.summary       = "Builds a params-sifted scope"
-  spec.description   = 'Parascope::Query class provides a way to dynamically
-    apply scopes or ActiveRecord query methods based on passed params with a
-    declarative and convenient API'
-  spec.homepage      = "https://github.com/akuzko/parascope"
+  spec.description   = 'Zen::Query class provides a way to dynamically
+    apply scopes or ActiveRecord (or any other ORM) query methods based on passed
+    params with a declarative and convenient API'
+  spec.homepage      = "https://github.com/akuzko/zen-query"
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.4.0")
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org/"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/akuzko/parascope.git"
+  spec.metadata["source_code_uri"] = "https://github.com/akuzko/zen-query.git"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_development_dependency "bundler", ">= 2.1.0"
   spec.add_development_dependency "pry"
   spec.add_development_dependency "pry-nav"
   spec.add_development_dependency "rake", "~> 13.0"

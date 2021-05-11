@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Parascope
+module Zen
   class Query
     class ApiBlock
       OPTION_KEYS = %i[index if unless].freeze

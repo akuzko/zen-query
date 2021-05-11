@@ -2,7 +2,7 @@
 
 require "ostruct"
 
-RSpec.describe Parascope::Query do
+RSpec.describe Zen::Query do
   def self.feature(&block)
     let(:feature_block) { block }
   end
@@ -17,11 +17,15 @@ RSpec.describe Parascope::Query do
   let(:query_klass) do
     feature = feature_block
 
-    Class.new(Parascope::Query) do
+    Class.new(Zen::Query) do
       alias_subject_name(:scope)
       module_eval(&feature)
       scope { OpenStruct.new } if scope.nil?
     end
+  end
+
+  it "has a version number" do
+    expect(Zen::Query::VERSION).not_to be nil
   end
 
   subject(:resolve) { query.resolve.to_h }
@@ -283,22 +287,22 @@ RSpec.describe Parascope::Query do
 
     describe "base subject" do
       context "when not specified" do
-        let(:query_klass) { Class.new(Parascope::Query) }
+        let(:query_klass) { Class.new(Zen::Query) }
 
-        specify { expect { resolve }.to raise_error(Parascope::UndefinedSubjectError) }
+        specify { expect { resolve }.to raise_error(Zen::Query::UndefinedSubjectError) }
       end
     end
   end
 
   describe "helpers" do
     describe "attributes" do
-      let(:query_klass) { Class.new(Parascope::Query) { attributes :user } }
+      let(:query_klass) { Class.new(Zen::Query) { attributes :user } }
       let(:user)        { Object.new }
       let(:query)       { query_klass.new(user: user) }
 
       specify { expect(query.user).to be user }
 
-      it 'raises an error on unknown attributes' do
+      it "raises an error on unknown attributes" do
         expect { query_klass.new(company: user) }.to raise_error(ArgumentError)
       end
     end
@@ -338,7 +342,7 @@ RSpec.describe Parascope::Query do
         let(:scope) { OpenStruct.new }
 
         it "raises error" do
-          expect { query.resolve }.to raise_error(Parascope::GuardViolationError)
+          expect { query.resolve }.to raise_error(Zen::Query::GuardViolationError)
         end
       end
 
@@ -369,7 +373,7 @@ RSpec.describe Parascope::Query do
         params bar: "bak"
 
         it "raises error" do
-          expect { query.resolve }.to raise_error(Parascope::GuardViolationError)
+          expect { query.resolve }.to raise_error(Zen::Query::GuardViolationError)
         end
       end
 
